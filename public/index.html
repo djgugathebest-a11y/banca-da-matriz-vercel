@@ -952,7 +952,9 @@ async function createMPPreference(orderId, product, phone, email) {
       const data = await res.json();
       if (data.qr_code_base64 && data.qr_code) {
         qrGerado = true;
-        const msg = encodeURIComponent("Olá! Paguei R$ " + priceStr + " via Pix.\nProduto: " + name + "\nID: " + data.payment_id + "\nWhatsApp: " + phone);
+        const pixKey = '61984611071';
+        const comprovMsg = encodeURIComponent("Olá! Acabei de pagar R$ " + priceStr + " via Pix.\nProduto: " + name + "\n\n[Comprovante em anexo]\n\nMeu WhatsApp: " + phone);
+        const qrCodeSafe = data.qr_code.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         document.getElementById('modalBody').innerHTML = `
           <div class="checkout-steps">
             <div class="step done">1 Contato</div>
@@ -961,27 +963,37 @@ async function createMPPreference(orderId, product, phone, email) {
           </div>
           <div style="text-align:center;padding:8px 0 0">
             <p style="font-weight:700;font-size:15px;margin-bottom:2px">${name}</p>
-            <p style="font-size:24px;font-weight:800;color:#34d399;margin-bottom:10px">R$ ${priceStr}</p>
-            <p style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600">📲 Escaneie com qualquer banco:</p>
-            <div style="display:inline-block;background:#1a1a2e;padding:10px;border-radius:12px;border:2px solid #2d2d4a;margin-bottom:10px">
-              <img src="data:image/png;base64,${data.qr_code_base64}" width="180" height="180" alt="QR Code Pix">
+            <p style="font-size:26px;font-weight:800;color:#34d399;margin-bottom:6px">R$ ${priceStr}</p>
+
+            <p style="font-size:11px;color:#94a3b8;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">📲 Escaneie o QR Code com seu banco</p>
+            <div style="display:inline-block;background:white;padding:10px;border-radius:14px;border:3px solid #7c3aed;margin-bottom:8px;box-shadow:0 0 18px rgba(124,58,237,0.3)">
+              <img src="data:image/png;base64,${data.qr_code_base64}" width="190" height="190" alt="QR Code Pix">
             </div>
-            <div style="background:#16162a;border-radius:10px;padding:8px 12px;margin-bottom:6px">
-              <p style="font-size:10px;color:#94a3b8;margin-bottom:3px;font-weight:600;text-transform:uppercase">Código copia e cola</p>
-              <p style="font-size:10px;word-break:break-all;color:#475569;font-family:monospace;margin:0">${data.qr_code.substring(0,60)}...</p>
+
+            <p style="font-size:11px;color:#94a3b8;margin:8px 0 4px;font-weight:600">— ou Pix Copia e Cola —</p>
+            <div style="background:#16162a;border-radius:10px;padding:10px 12px;margin-bottom:8px;text-align:left">
+              <p style="font-size:9px;color:#64748b;margin-bottom:3px;font-weight:700;text-transform:uppercase">Código Pix</p>
+              <p style="font-size:10px;word-break:break-all;color:#a78bfa;font-family:monospace;margin:0;line-height:1.4">${data.qr_code.substring(0,80)}...</p>
             </div>
-            <button onclick="navigator.clipboard.writeText('${data.qr_code}').then(()=>showToast('Código copiado! ✅'))"
-              style="background:#e0f2fe;color:#0369a1;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">
+            <button onclick="navigator.clipboard.writeText('${qrCodeSafe}').then(()=>showToast('Código copiado! ✅'))"
+              style="width:100%;background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:white;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px">
               📋 Copiar código Pix
             </button>
-            <p style="font-size:10px;color:#94a3b8;margin-top:8px">🔒 Gerado pelo Mercado Pago · Expira em 30 min</p>
+
+            <div style="background:#1a1a2e;border:1px solid #2d2d4a;border-radius:12px;padding:12px;margin-bottom:4px;text-align:left">
+              <p style="font-size:10px;color:#64748b;margin-bottom:4px;font-weight:700;text-transform:uppercase">— ou Pix pela chave celular —</p>
+              <p style="font-size:20px;font-weight:800;color:#34d399;letter-spacing:1px;margin:0">${pixKey}</p>
+              <p style="font-size:11px;color:#64748b;margin-top:4px">Gustavo Rodrigues · Planaltina DF</p>
+            </div>
+            <p style="font-size:10px;color:#64748b;margin-top:6px">🔒 QR Code gerado pelo Mercado Pago · Expira em 30 min</p>
           </div>
         `;
         document.getElementById('modalFooter').innerHTML = `
-          <div style="background:rgba(16,185,129,0.1);border-radius:10px;padding:12px;text-align:center">
-            <p style="font-size:13px;font-weight:700;color:#34d399;margin-bottom:4px">✅ Pague o Pix acima</p>
-            <p style="font-size:12px;color:#64748b">Seu pedido será confirmado automaticamente após o pagamento.<br>Em caso de dúvida, <a href="https://wa.me/${WPP}?text=Olá!%20Preciso%20de%20ajuda%20com%20meu%20pedido." target="_blank" style="color:#25d366;font-weight:700;text-decoration:none">fale conosco no WhatsApp</a>.</p>
-          </div>
+          <a href="https://wa.me/${WPP}?text=${comprovMsg}" target="_blank"
+            style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#25d366,#1ebe5d);color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:8px">
+            📤 Enviar comprovante no Atendimento
+          </a>
+          <p style="font-size:11px;color:#64748b;text-align:center">Após pagar, envie o comprovante pelo botão acima para confirmação rápida.</p>
         `;
       }
     }
@@ -992,7 +1004,7 @@ async function createMPPreference(orderId, product, phone, email) {
   // Fallback: Pix manual com chave
   if (!qrGerado) {
     const pixKey = '61984611071';
-    const msg = encodeURIComponent("Olá! Quero comprar: " + name + "\nValor: R$ " + priceStr + "\nMeu WhatsApp: " + phone);
+    const comprovMsg = encodeURIComponent("Olá! Acabei de pagar R$ " + priceStr + " via Pix.\nProduto: " + name + "\n\n[Comprovante em anexo]\n\nMeu WhatsApp: " + phone);
     document.getElementById('modalBody').innerHTML = `
       <div class="checkout-steps">
         <div class="step done">1 Contato</div>
@@ -1001,23 +1013,26 @@ async function createMPPreference(orderId, product, phone, email) {
       </div>
       <div style="text-align:center;padding:8px 0 0">
         <p style="font-weight:700;font-size:15px;margin-bottom:2px">${name}</p>
-        <p style="font-size:24px;font-weight:800;color:#34d399;margin-bottom:12px">R$ ${priceStr}</p>
-        <div style="background:rgba(16,185,129,0.1);border:2px solid #10b981;border-radius:12px;padding:14px;margin-bottom:12px;text-align:left">
-          <p style="font-size:11px;color:#64748b;margin-bottom:4px;font-weight:600">CHAVE PIX (celular):</p>
-          <p style="font-size:22px;font-weight:800;color:#15803d;letter-spacing:1px">${pixKey}</p>
-          <p style="font-size:12px;color:#64748b;margin-top:6px">Nome: Gustavo Rodrigues</p>
+        <p style="font-size:26px;font-weight:800;color:#34d399;margin-bottom:14px">R$ ${priceStr}</p>
+
+        <p style="font-size:11px;color:#94a3b8;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Chave Pix — Celular</p>
+        <div style="background:#1a1a2e;border:2px solid #10b981;border-radius:14px;padding:16px;margin-bottom:10px;text-align:center">
+          <p style="font-size:26px;font-weight:800;color:#34d399;letter-spacing:2px;margin:0">${pixKey}</p>
+          <p style="font-size:12px;color:#64748b;margin-top:6px">Gustavo Rodrigues · Planaltina DF</p>
         </div>
         <button onclick="navigator.clipboard.writeText('${pixKey}').then(()=>showToast('Chave copiada! ✅'))"
-          style="background:#e0f2fe;color:#0369a1;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;width:100%;margin-bottom:8px">
+          style="width:100%;background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:white;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:6px">
           📋 Copiar chave Pix
         </button>
+        <p style="font-size:11px;color:#64748b;margin-top:4px">Abra seu banco, vá em Pix → Pagar → Chave e cole o número acima.</p>
       </div>
     `;
     document.getElementById('modalFooter').innerHTML = `
-      <div style="background:rgba(16,185,129,0.1);border-radius:10px;padding:12px;text-align:center">
-        <p style="font-size:13px;font-weight:700;color:#34d399;margin-bottom:4px">✅ Pague o Pix acima</p>
-        <p style="font-size:12px;color:#64748b">Seu pedido será confirmado após o pagamento.<br>Em caso de dúvida, <a href="https://wa.me/${WPP}?text=Olá!%20Preciso%20de%20ajuda%20com%20meu%20pedido." target="_blank" style="color:#25d366;font-weight:700;text-decoration:none">fale conosco no WhatsApp</a>.</p>
-      </div>
+      <a href="https://wa.me/${WPP}?text=${comprovMsg}" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#25d366,#1ebe5d);color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:8px">
+        📤 Enviar comprovante no Atendimento
+      </a>
+      <p style="font-size:11px;color:#64748b;text-align:center">Após pagar, envie o comprovante pelo botão acima para confirmação rápida.</p>
     `;
   }
 }
