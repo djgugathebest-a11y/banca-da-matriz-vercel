@@ -356,7 +356,7 @@
     .invite-row input { flex:1; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none; background:var(--bg); color:var(--text); }
     .invite-row select { padding:10px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none; background:var(--bg); color:var(--text); }
     .btn-invite { background:var(--primary); color:white; border:none; border-radius:8px; padding:10px 16px; font-size:14px; font-weight:600; cursor:pointer; }
-    .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
     .stat-card { background:var(--bg); border-radius:12px; padding:16px; text-align:center; border:1px solid var(--border); }
     .stat-val { font-size:28px; font-weight:800; color:#a78bfa; }
     .stat-label { font-size:12px; color:var(--text-light); margin-top:4px; }
@@ -465,6 +465,7 @@
   <div class="tabs-inner">
     <button class="tab-btn active" onclick="switchTab('pecas',this)">🔧 Peças</button>
     <button class="tab-btn" onclick="switchTab('digital',this)">📚 Digital</button>
+    <button class="tab-btn" onclick="switchTab('geek',this)">🎮 Geek</button>
     <button class="tab-btn" id="tabAdmin" onclick="switchTab('admin',this)" style="display:none">⚙️ Admin</button>
   </div>
 </div>
@@ -530,6 +531,67 @@
   </div>
 
   <!-- ===== ABA ADMIN ===== -->
+  <div class="tab-panel" id="panel-geek">
+    <!-- Formulário de upload (só admin/collab) -->
+    <div class="upload-section" id="uploadSectionGeek">
+      <h3>➕ Adicionar Produto Geek</h3>
+      <div class="form-group">
+        <label>Nome do produto</label>
+        <input type="text" class="form-control" id="gkTitle" placeholder="Ex: Action Figure Naruto, Mouse Gamer...">
+      </div>
+      <div class="form-group">
+        <label>Descrição curta</label>
+        <input type="text" class="form-control" id="gkDesc" placeholder="Breve descrição">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select class="form-control" id="gkCat">
+          <option>Action Figure</option>
+          <option>Acessório Gamer</option>
+          <option>Camiseta</option>
+          <option>Caneca</option>
+          <option>Quadro/Poster</option>
+          <option>Colecionável</option>
+          <option>Periférico</option>
+          <option>Cabo/Adaptador</option>
+          <option>Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Preço (R$)</label>
+        <input type="number" class="form-control" id="gkPrice" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Estoque</label>
+        <input type="number" class="form-control" id="gkStock" placeholder="Quantidade disponível" min="0">
+      </div>
+      <div class="form-group">
+        <label>Imagem (URL)</label>
+        <input type="url" class="form-control" id="gkImg" placeholder="https://... (opcional)">
+      </div>
+      <button class="btn-save" onclick="saveGeek()">💾 Salvar Produto</button>
+    </div>
+
+    <!-- Filtros por categoria -->
+    <div class="filters" id="geekFilters">
+      <button class="filter-btn active" onclick="filterGeek('todos',this)">Todos</button>
+      <button class="filter-btn" onclick="filterGeek('Action Figure',this)">Action Figure</button>
+      <button class="filter-btn" onclick="filterGeek('Acessório Gamer',this)">Gamer</button>
+      <button class="filter-btn" onclick="filterGeek('Colecionável',this)">Colecionável</button>
+      <button class="filter-btn" onclick="filterGeek('Periférico',this)">Periférico</button>
+      <button class="filter-btn" onclick="filterGeek('Outro',this)">Outros</button>
+    </div>
+
+    <div class="digital-grid" id="geekGrid">
+      <div style="text-align:center;padding:60px 20px;color:#64748b;grid-column:1/-1">
+        <div style="font-size:48px;margin-bottom:12px">🎮</div>
+        <p style="font-weight:600;color:var(--text)">Em breve!</p>
+        <p style="font-size:13px;margin-top:6px;color:var(--text-light)">Action figures, acessórios gamer, colecionáveis e muito mais chegando aqui.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ABA ADMIN ===== -->
   <div class="tab-panel" id="panel-admin">
     <div class="admin-section">
       <h3>📊 Resumo</h3>
@@ -541,6 +603,10 @@
         <div class="stat-card">
           <div class="stat-val" id="statDigital">0</div>
           <div class="stat-label">Produtos digitais</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statGeek">0</div>
+          <div class="stat-label">Geek & Acessórios</div>
         </div>
         <div class="stat-card">
           <div class="stat-val" id="statOrders">0</div>
@@ -635,6 +701,7 @@ function updateAdminUI() {
   document.getElementById('adminLink').style.display = isStaff ? 'inline-flex' : 'none';
   document.getElementById('tabAdmin').style.display = isStaff ? 'block' : 'none';
   document.getElementById('uploadSection').style.display = isStaff ? 'block' : 'none';
+  document.getElementById('uploadSectionGeek').style.display = isStaff ? 'block' : 'none';
   if (isStaff) loadAdminData();
 }
 
@@ -882,7 +949,11 @@ function proceedToPayment(prodId, tipo) {
   localStorage.setItem('bm_phone', phone);
   localStorage.setItem('bm_email', email);
 
-  const p = tipo === 'peca' ? (PRODUCTS[prodId] || PRODUCTS[parseInt(prodId)]) : (digitalProducts.find(d=>d.id===prodId) || digitalProducts.find(d=>String(d.id)===String(prodId)));
+  const p = tipo === 'peca'
+    ? (PRODUCTS[prodId] || PRODUCTS[parseInt(prodId)])
+    : tipo === 'geek'
+      ? (geekProducts.find(d=>d.id===prodId))
+      : (digitalProducts.find(d=>d.id===prodId) || digitalProducts.find(d=>String(d.id)===String(prodId)));
   if (!p) { showToast('Erro ao localizar produto. Tente novamente.'); return; }
 
   // Salvar pedido no Firestore
@@ -1405,6 +1476,114 @@ auth.onAuthStateChanged(user => {
 
 // Carregar digital
 loadDigital();
+
+// ===== GEEK & ACESSÓRIOS =====
+let geekProducts = [];
+let geekFilter = 'todos';
+
+async function loadGeek() {
+  try {
+    const snap = await db.collection('geek_products').orderBy('createdAt','desc').get();
+    geekProducts = [];
+    snap.forEach(doc => geekProducts.push({ id: doc.id, ...doc.data() }));
+    document.getElementById('statGeek') && (document.getElementById('statGeek').textContent = geekProducts.length);
+    renderGeek();
+  } catch(e) { console.log('Geek load error:', e); }
+}
+
+function renderGeek(filter) {
+  if (filter !== undefined) geekFilter = filter;
+  const grid = document.getElementById('geekGrid');
+  if (!grid) return;
+  const list = geekFilter === 'todos' ? geekProducts : geekProducts.filter(p => p.category === geekFilter);
+  if (!list.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#64748b;grid-column:1/-1">
+      <div style="font-size:48px;margin-bottom:12px">🎮</div>
+      <p style="font-weight:600;color:var(--text)">Em breve!</p>
+      <p style="font-size:13px;margin-top:6px;color:var(--text-light)">Action figures, acessórios gamer, colecionáveis e muito mais chegando aqui.</p>
+    </div>`;
+    return;
+  }
+  const catColors = {
+    'Action Figure':'rgba(239,68,68,0.2)',
+    'Acessório Gamer':'rgba(124,58,237,0.2)',
+    'Camiseta':'rgba(59,130,246,0.2)',
+    'Caneca':'rgba(245,158,11,0.2)',
+    'Quadro/Poster':'rgba(16,185,129,0.2)',
+    'Colecionável':'rgba(236,72,153,0.2)',
+    'Periférico':'rgba(20,184,166,0.2)',
+    'Cabo/Adaptador':'rgba(100,116,139,0.2)',
+    'Outro':'rgba(100,116,139,0.15)'
+  };
+  const catTextColors = {
+    'Action Figure':'#f87171','Acessório Gamer':'#a78bfa','Camiseta':'#60a5fa',
+    'Caneca':'#fbbf24','Quadro/Poster':'#34d399','Colecionável':'#f472b6',
+    'Periférico':'#2dd4bf','Cabo/Adaptador':'#94a3b8','Outro':'#94a3b8'
+  };
+  grid.innerHTML = list.map(p => {
+    const price = typeof p.price === 'number' ? p.price.toFixed(2).replace('.',',') : p.price;
+    const tagBg = catColors[p.category] || 'rgba(100,116,139,0.15)';
+    const tagColor = catTextColors[p.category] || '#94a3b8';
+    const imgHtml = p.imageUrl
+      ? `<img src="${p.imageUrl}" alt="${p.title}" style="width:100%;height:160px;object-fit:cover">`
+      : `<div style="width:100%;height:160px;background:linear-gradient(135deg,#1a0a2e,#2d1b69);display:flex;align-items:center;justify-content:center;font-size:52px">🎮</div>`;
+    const estoque = p.stock > 0 ? `<span style="font-size:10px;color:#34d399">✅ ${p.stock} em estoque</span>` : `<span style="font-size:10px;color:#f43f5e">❌ Esgotado</span>`;
+    return `<div class="digital-card">
+      ${imgHtml}
+      <div class="digital-body">
+        <span class="digital-tag" style="background:${tagBg};color:${tagColor}">${p.category||'Geek'}</span>
+        <div class="digital-title" style="margin-top:8px">${p.title}</div>
+        <div class="digital-desc">${p.description||''}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:20px;font-weight:800;color:#34d399">R$ ${price}</span>
+          ${estoque}
+        </div>
+        ${p.stock > 0
+          ? `<button class="btn-buy" onclick="openCheckoutGeek('${p.id}')" style="width:100%">🛒 Comprar</button>`
+          : `<button style="width:100%;padding:10px;border-radius:8px;border:1px solid #2d2d4a;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:not-allowed">Esgotado</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterGeek(cat, btn) {
+  document.querySelectorAll('#geekFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGeek(cat);
+}
+
+async function saveGeek() {
+  const title = document.getElementById('gkTitle').value.trim();
+  const desc = document.getElementById('gkDesc').value.trim();
+  const cat = document.getElementById('gkCat').value;
+  const price = parseFloat(document.getElementById('gkPrice').value);
+  const stock = parseInt(document.getElementById('gkStock').value) || 0;
+  const imageUrl = document.getElementById('gkImg').value.trim();
+  if (!title || isNaN(price)) { showToast('Preencha nome e preço!'); return; }
+  await db.collection('geek_products').add({
+    title, description: desc, category: cat, price, stock,
+    imageUrl: imageUrl || '', active: true,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  showToast('✅ Produto Geek salvo!');
+  document.getElementById('gkTitle').value = '';
+  document.getElementById('gkDesc').value = '';
+  document.getElementById('gkPrice').value = '';
+  document.getElementById('gkStock').value = '';
+  document.getElementById('gkImg').value = '';
+  loadGeek();
+}
+
+function openCheckoutGeek(id) {
+  const p = geekProducts.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modalTitle').textContent = '🛒 ' + p.title;
+  showCheckoutStep1(p, 'geek');
+  openModal();
+}
+
+loadGeek();
 </script>
 
 <!-- OVERLAY CARRINHO -->
