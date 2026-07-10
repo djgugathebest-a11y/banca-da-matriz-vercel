@@ -882,8 +882,8 @@ function proceedToPayment(prodId, tipo) {
   localStorage.setItem('bm_phone', phone);
   localStorage.setItem('bm_email', email);
 
-  const p = tipo === 'peca' ? PRODUCTS[prodId] : digitalProducts.find(d=>d.id===prodId);
-  if (!p) return;
+  const p = tipo === 'peca' ? (PRODUCTS[prodId] || PRODUCTS[parseInt(prodId)]) : (digitalProducts.find(d=>d.id===prodId) || digitalProducts.find(d=>String(d.id)===String(prodId)));
+  if (!p) { showToast('Erro ao localizar produto. Tente novamente.'); return; }
 
   // Salvar pedido no Firestore
   const tipoEntrega = window._tipoEntrega || 'entrega';
@@ -1087,8 +1087,8 @@ async function saveDigital() {
 
 // ===== CHECKOUT DIGITAL =====
 function openCheckoutDigital(id) {
-  const p = digitalProducts.find(d=>d.id===id);
-  if (!p) return;
+  const p = digitalProducts.find(d=>d.id===id) || digitalProducts.find(d=>String(d.id)===String(id));
+  if (!p) { showToast('Produto não encontrado.'); return; }
   document.getElementById('modalTitle').textContent = '🛒 ' + p.title;
   showCheckoutStep1(p, 'digital');
   openModal();
