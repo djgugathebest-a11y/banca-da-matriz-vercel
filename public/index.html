@@ -713,6 +713,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+db.settings({ cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED });
+try { db.enableNetwork(); } catch(e) {}
 
 // ===== OWNER EMAIL =====
 const OWNER_EMAIL = 'djgugathebest@gmail.com';
@@ -1789,8 +1791,12 @@ async function loadGeek() {
       const tb = b.createdAt?.seconds || 0;
       return tb - ta;
     });
+    console.log('[Geek] carregados:', geekProducts.length, 'snap.size:', snap.size);
     document.getElementById('statGeek') && (document.getElementById('statGeek').textContent = geekProducts.length);
-    renderGeek();
+    // Atualizar o grid se a aba estiver ativa
+    const panel = document.getElementById('panel-geek');
+    if (panel && panel.classList.contains('active')) renderGeek();
+    else renderGeek(); // renderizar mesmo assim para preparar
   } catch(e) {
     console.error('Geek load error:', e);
     const grid = document.getElementById('geekGrid');
