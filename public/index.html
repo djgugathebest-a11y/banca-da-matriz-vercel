@@ -97,11 +97,12 @@
     .tab-panel.active { display:block; }
 
     /* ===== FILTROS ===== */
-    .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+    .filters::-webkit-scrollbar { display:none; }
     .filter-btn {
       padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
       cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text-light);
-      transition: all .15s;
+      transition: all .15s; white-space:nowrap; flex-shrink:0;
     }
     .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 12px rgba(124,58,237,0.4); }
     .filter-btn:hover:not(.active) { border-color: var(--primary); color: #a78bfa; }
@@ -777,6 +778,7 @@ function switchTab(name, btn) {
   btn.classList.add('active');
   document.getElementById('searchWrap').style.display = name === 'pecas' ? 'block' : 'none';
   if (name === 'admin' && isStaff) loadArchivedProducts();
+  if (name === 'geek') loadGeek();
 }
 
 // ===== PRODUTOS DE PEÇAS =====
