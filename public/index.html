@@ -97,8 +97,9 @@
     .tab-panel.active { display:block; }
 
     /* ===== FILTROS ===== */
-    .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
-    .filters::-webkit-scrollbar { display:none; }
+    .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .filters.scroll-x { flex-wrap:nowrap !important; overflow-x:auto !important; padding-bottom:6px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+    .filters.scroll-x::-webkit-scrollbar { display:none; }
     .filter-btn {
       padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
       cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text-light);
@@ -605,7 +606,7 @@
     </div>
 
     <!-- Filtros por categoria -->
-    <div class="filters" id="geekFilters">
+    <div class="filters scroll-x" id="geekFilters">
       <button class="filter-btn active" onclick="filterGeek('todos',this)">Todos</button>
       <button class="filter-btn" onclick="filterGeek('Action Figure',this)">Action Figure</button>
       <button class="filter-btn" onclick="filterGeek('Acessório Gamer',this)">Gamer</button>
@@ -1779,12 +1780,18 @@ let geekFilter = 'todos';
 
 async function loadGeek() {
   try {
-    const snap = await db.collection('geek_products').orderBy('createdAt','desc').get();
+    const snap = await db.collection('geek_products').get();
     geekProducts = [];
     snap.forEach(doc => geekProducts.push({ id: doc.id, ...doc.data() }));
+    // Ordenar por createdAt decrescente no cliente
+    geekProducts.sort((a, b) => {
+      const ta = a.createdAt?.seconds || 0;
+      const tb = b.createdAt?.seconds || 0;
+      return tb - ta;
+    });
     document.getElementById('statGeek') && (document.getElementById('statGeek').textContent = geekProducts.length);
     renderGeek();
-  } catch(e) { console.log('Geek load error:', e); }
+  } catch(e) { console.error('Geek load error:', e); }
 }
 
 function renderGeek(filter) {
