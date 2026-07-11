@@ -134,7 +134,9 @@
       transition: background .2s;
     }
     .btn-archive:hover { background:rgba(239,68,68,0.8); }
+    .btn-archive[title="Editar"]:hover { background:rgba(124,58,237,0.8) !important; }
     .product-card:hover .btn-archive { display:flex; }
+    .digital-card:hover .btn-archive { display:flex; }
     /* card arquivado */
     .archived-card {
       background:var(--card); border-radius:12px; border:1px solid var(--border);
@@ -499,6 +501,10 @@
 
   <!-- ===== ABA PEÇAS ===== -->
   <div class="tab-panel active" id="panel-pecas">
+    <!-- Botão adicionar peça (só staff) -->
+    <div id="addPecaBtn" style="display:none;margin-bottom:12px">
+      <button onclick="openAddPecaModal()" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px">➕ Adicionar Peça</button>
+    </div>
     <div class="filters" id="brandFilters">
       <button class="filter-btn active" onclick="filterBrand('',this)">Todas</button>
     </div>
@@ -736,12 +742,16 @@ auth.onAuthStateChanged(async user => {
 
 function updateAdminUI() {
   isStaff = userRole === 'owner' || userRole === 'admin' || userRole === 'colaborador';
-  const isStaff = window.isStaff;
   document.getElementById('adminLink').style.display = isStaff ? 'inline-flex' : 'none';
   document.getElementById('tabAdmin').style.display = isStaff ? 'block' : 'none';
   document.getElementById('uploadSection').style.display = isStaff ? 'block' : 'none';
   document.getElementById('uploadSectionGeek').style.display = isStaff ? 'block' : 'none';
+  document.getElementById('addPecaBtn').style.display = isStaff ? 'block' : 'none';
   if (isStaff) loadAdminData();
+  // Re-renderizar cards para mostrar botões de admin
+  renderPecas(activeBrand, document.getElementById('searchInput')?.value || '');
+  if (digitalProducts.length) renderDigital();
+  renderGeek();
 }
 
 function handleAuth() {
@@ -830,7 +840,10 @@ function renderPecas(filter='', term='') {
             <button class="btn-cart" id="cart-${p.id}" onclick="addToCart(${p.id},event)">🛒 Carrinho</button>
             <button class="btn-buy-card" onclick="buyNow(${p.id},event)">⚡ Comprar</button>
           </div>
-          ${isStaff ? `<button class="btn-archive" title="Arquivar" onclick="event.stopPropagation();archiveProduct('peca',${p.id},'${p.name.replace(/'/g,"\\'")}')">🗑️</button>` : ''}
+          ${isStaff ? `
+            <button class="btn-archive" title="Arquivar" style="right:6px" onclick="event.stopPropagation();archiveProduct('peca',${p.id},'${p.name.replace(/'/g,"\\'")}')">🗑️</button>
+            <button class="btn-archive" title="Editar" style="right:40px;background:rgba(15,15,25,0.75)" onclick="event.stopPropagation();openEditPecaModal(${p.id})">✏️</button>
+          ` : ''}
         </div>`;
       });
       html += `</div>`;
@@ -1175,7 +1188,10 @@ function renderDigital() {
   };
   grid.innerHTML = digitalProducts.map(p => `
     <div class="digital-card" style="position:relative">
-      ${isStaff ? `<button class="btn-archive" title="Arquivar" onclick="archiveProduct('digital','${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">🗑️</button>` : ''}
+      ${isStaff ? `
+        <button class="btn-archive" title="Arquivar" style="right:6px" onclick="archiveProduct('digital','${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">🗑️</button>
+        <button class="btn-archive" title="Editar" style="right:40px;background:rgba(15,15,25,0.75)" onclick="openEditDigitalModal('${p.id}')">✏️</button>
+      ` : ''}
       <div class="digital-cover">
         ${p.imgUrl ? `<img src="${p.imgUrl}" alt="${p.title}">` : `<span style="font-size:60px">${p.category==='Curso'?'🎓':p.category==='Apostila'?'📄':p.category==='Gibi/HQ'?'🦸':'📖'}</span>`}
       </div>
@@ -1519,6 +1535,149 @@ auth.onAuthStateChanged(user => {
 // Carregar digital
 loadDigital();
 
+// ===== MODAL DE EDIÇÃO =====
+function buildEditModalHTML(fields, title, onSaveFn) {
+  return `<div id="editModal" onclick="if(event.target===this)this.remove()" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">
+    <div style="background:#1a0a2e;border:1px solid #2d1b69;border-radius:16px;padding:20px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="color:#a78bfa;font-size:16px;margin:0">✏️ ${title}</h3>
+        <button onclick="document.getElementById('editModal').remove()" style="background:none;border:none;color:#64748b;font-size:22px;cursor:pointer;line-height:1">×</button>
+      </div>
+      ${fields}
+      <button onclick="${onSaveFn}" style="width:100%;padding:12px;background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;margin-top:12px">💾 Salvar Alterações</button>
+    </div>
+  </div>`;
+}
+
+function editInput(id, label, value, type) {
+  type = type || 'text';
+  return `<div style="margin-bottom:12px">
+    <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:4px">${label}</label>
+    <input id="${id}" type="${type}" value="${String(value||'').replace(/"/g,'&quot;')}" style="width:100%;padding:10px;background:#0d0d1a;border:1px solid #2d1b69;border-radius:8px;color:#e2e8f0;font-size:13px;box-sizing:border-box">
+  </div>`;
+}
+function editSelect(id, label, options, current) {
+  var opts = options.map(function(o){ return '<option value="'+o+'"'+(o===current?' selected':'')+'>'+o+'</option>'; }).join('');
+  return `<div style="margin-bottom:12px">
+    <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:4px">${label}</label>
+    <select id="${id}" style="width:100%;padding:10px;background:#0d0d1a;border:1px solid #2d1b69;border-radius:8px;color:#e2e8f0;font-size:13px;box-sizing:border-box">${opts}</select>
+  </div>`;
+}
+
+function openAddPecaModal() { openEditPecaModal(null); }
+function openEditPecaModal(id) {
+  var p = id !== null ? (PRODUCTS[id] || PRODUCTS.find(function(x){return x.id===parseInt(id);})) : null;
+  var brands = [...new Set(PRODUCTS.map(function(x){return x.brand;}))].sort();
+  var types  = [...new Set(PRODUCTS.map(function(x){return x.type;}))].sort();
+  var fields = [
+    editInput('ep_name','Nome', p?p.name:''),
+    editInput('ep_price','Preço (R$)', p?p.price:'', 'number'),
+    editInput('ep_img','URL da Imagem', p?p.img:''),
+    editSelect('ep_brand','Marca', brands, p?p.brand:brands[0]),
+    editSelect('ep_type','Tipo', types, p?p.type:types[0]),
+  ].join('');
+  var saveFn = id !== null ? ('savePecaEdit('+id+')') : 'savePecaNew()';
+  document.body.insertAdjacentHTML('beforeend', buildEditModalHTML(fields, id!==null?'Editar Peça':'Nova Peça', saveFn));
+}
+
+async function savePecaEdit(id) {
+  var name  = document.getElementById('ep_name').value.trim();
+  var price = parseFloat(document.getElementById('ep_price').value);
+  var img   = document.getElementById('ep_img').value.trim();
+  var brand = document.getElementById('ep_brand').value;
+  var type  = document.getElementById('ep_type').value;
+  if (!name || !price) { showToast('Preencha nome e preço!'); return; }
+  await db.collection('peca_overrides').doc(String(id)).set({
+    name, price, img: img||null, brand, type, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.email
+  });
+  var idx = PRODUCTS.findIndex(function(p){return p.id===parseInt(id);});
+  if (idx>=0) { PRODUCTS[idx] = Object.assign({}, PRODUCTS[idx], {name, price, img: img||PRODUCTS[idx].img, brand, type}); }
+  document.getElementById('editModal').remove();
+  showToast('✅ Peça atualizada!');
+  renderPecas(activeBrand, document.getElementById('searchInput')?document.getElementById('searchInput').value:'');
+}
+
+async function savePecaNew() {
+  var name  = document.getElementById('ep_name').value.trim();
+  var price = parseFloat(document.getElementById('ep_price').value);
+  var img   = document.getElementById('ep_img').value.trim();
+  var brand = document.getElementById('ep_brand').value;
+  var type  = document.getElementById('ep_type').value;
+  if (!name || !price) { showToast('Preencha nome e preço!'); return; }
+  var newId = PRODUCTS.length > 0 ? Math.max.apply(null, PRODUCTS.map(function(p){return p.id;})) + 1 : 0;
+  var newP = { id: newId, name, price, img: img||null, brand, type, search: (name+' '+brand+' '+type).toLowerCase(), priceStr: 'R$ '+price.toFixed(2).replace('.',',') };
+  PRODUCTS.push(newP);
+  await db.collection('peca_overrides').doc(String(newId)).set(Object.assign({}, newP, {isNew:true, createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: currentUser.email}));
+  document.getElementById('editModal').remove();
+  showToast('✅ Peça adicionada!');
+  var bf = document.getElementById('brandFilters');
+  var hasBrand = [...bf.querySelectorAll('.filter-btn')].some(function(b){return b.textContent===brand;});
+  if (!hasBrand) {
+    var btn = document.createElement('button'); btn.className='filter-btn'; btn.textContent=brand;
+    btn.onclick=function(){filterBrand(brand,btn);}; bf.appendChild(btn);
+  }
+  document.getElementById('statPecas').textContent = PRODUCTS.length;
+  renderPecas(activeBrand, document.getElementById('searchInput')?document.getElementById('searchInput').value:'');
+}
+
+function openEditDigitalModal(id) {
+  var p = digitalProducts.find(function(x){return x.id===id;});
+  if (!p) return;
+  var cats = ['Curso','Apostila','Gibi/HQ','Livro','Outro'];
+  var fields = [
+    editInput('ed_title','Título', p.title||''),
+    editInput('ed_price','Preço (R$)', p.price||'', 'number'),
+    editInput('ed_desc','Descrição', p.description||''),
+    editSelect('ed_cat','Categoria', cats, p.category||'Outro'),
+    editInput('ed_url','URL do PDF', p.pdfUrl||''),
+    editInput('ed_img','URL da Capa (opcional)', p.imgUrl||''),
+  ].join('');
+  document.body.insertAdjacentHTML('beforeend', buildEditModalHTML(fields, 'Editar Produto Digital', "saveDigitalEdit('"+id+"')"));
+}
+
+async function saveDigitalEdit(id) {
+  var title = document.getElementById('ed_title').value.trim();
+  var price = parseFloat(document.getElementById('ed_price').value);
+  var desc  = document.getElementById('ed_desc').value.trim();
+  var cat   = document.getElementById('ed_cat').value;
+  var url   = document.getElementById('ed_url').value.trim();
+  var img   = document.getElementById('ed_img').value.trim();
+  if (!title||!price||!url) { showToast('Preencha título, preço e URL!'); return; }
+  await db.collection('digital_products').doc(id).update({ title, price, description:desc, category:cat, pdfUrl:url, imgUrl:img||null });
+  document.getElementById('editModal').remove();
+  showToast('✅ Produto atualizado!');
+  loadDigital();
+}
+
+function openEditGeekModal(id) {
+  var p = geekProducts.find(function(x){return x.id===id;});
+  if (!p) return;
+  var cats = ['Action Figure','Acessório Gamer','Camiseta','Caneca','Quadro/Poster','Colecionável','Periférico','Cabo/Adaptador','Outro'];
+  var fields = [
+    editInput('eg_title','Título', p.title||''),
+    editInput('eg_price','Preço (R$)', p.price||'', 'number'),
+    editInput('eg_desc','Descrição', p.description||''),
+    editSelect('eg_cat','Categoria', cats, p.category||'Outro'),
+    editInput('eg_stock','Estoque', p.stock||0, 'number'),
+    editInput('eg_img','URL da Imagem', p.imageUrl||''),
+  ].join('');
+  document.body.insertAdjacentHTML('beforeend', buildEditModalHTML(fields, 'Editar Produto Geek', "saveGeekEdit('"+id+"')"));
+}
+
+async function saveGeekEdit(id) {
+  var title = document.getElementById('eg_title').value.trim();
+  var price = parseFloat(document.getElementById('eg_price').value);
+  var desc  = document.getElementById('eg_desc').value.trim();
+  var cat   = document.getElementById('eg_cat').value;
+  var stock = parseInt(document.getElementById('eg_stock').value)||0;
+  var img   = document.getElementById('eg_img').value.trim();
+  if (!title||!price) { showToast('Preencha título e preço!'); return; }
+  await db.collection('geek_products').doc(id).update({ title, price, description:desc, category:cat, stock, imageUrl:img||null });
+  document.getElementById('editModal').remove();
+  showToast('✅ Produto atualizado!');
+  loadGeek();
+}
+
 // ===== SISTEMA DE ARQUIVO =====
 let archivedTab = 'pecas';
 
@@ -1664,7 +1823,10 @@ function renderGeek(filter) {
       : `<div style="width:100%;height:160px;background:linear-gradient(135deg,#1a0a2e,#2d1b69);display:flex;align-items:center;justify-content:center;font-size:52px">🎮</div>`;
     const estoque = p.stock > 0 ? `<span style="font-size:10px;color:#34d399">✅ ${p.stock} em estoque</span>` : `<span style="font-size:10px;color:#f43f5e">❌ Esgotado</span>`;
     return `<div class="digital-card" style="position:relative">
-      ${isStaff ? `<button class="btn-archive" title="Arquivar" onclick="archiveProduct('geek','${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">🗑️</button>` : ''}
+      ${isStaff ? `
+        <button class="btn-archive" title="Arquivar" style="right:6px" onclick="archiveProduct('geek','${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">🗑️</button>
+        <button class="btn-archive" title="Editar" style="right:40px;background:rgba(15,15,25,0.75)" onclick="openEditGeekModal('${p.id}')">✏️</button>
+      ` : ''}
       ${imgHtml}
       <div class="digital-body">
         <span class="digital-tag" style="background:${tagBg};color:${tagColor}">${p.category||'Geek'}</span>
