@@ -713,8 +713,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-db.settings({ cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED });
-try { db.enableNetwork(); } catch(e) {}
+db.settings({ experimentalForceLongPolling: true, merge: true });
 
 // ===== OWNER EMAIL =====
 const OWNER_EMAIL = 'djgugathebest@gmail.com';
@@ -1782,25 +1781,38 @@ let geekFilter = 'todos';
 
 async function loadGeek() {
   try {
-    const snap = await db.collection('geek_products').get();
-    geekProducts = [];
-    snap.forEach(doc => geekProducts.push({ id: doc.id, ...doc.data() }));
-    // Ordenar por createdAt decrescente no cliente
-    geekProducts.sort((a, b) => {
-      const ta = a.createdAt?.seconds || 0;
-      const tb = b.createdAt?.seconds || 0;
-      return tb - ta;
+    // Busca via REST API (sem SDK cache) para garantir dados frescos
+    const PROJECT = 'bancadamatriz-9f797';
+    const API_KEY = 'AIzaSyAoZYnDTl8WoCG5K3q6hjFQnVFmkAS6PZ8';
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/geek_products?key=${API_KEY}&pageSize=100`;
+    const res = await fetch(url);
+    const data = await res.json();
+    geekProducts = (data.documents || []).map(doc => {
+      const f = doc.fields || {};
+      const id = doc.name.split('/').pop();
+      const parseField = (v) => {
+        if (!v) return null;
+        return v.stringValue ?? v.integerValue ?? v.doubleValue ?? v.booleanValue ?? null;
+      };
+      const ts = f.createdAt?.timestampValue ? new Date(f.createdAt.timestampValue).getTime() / 1000 : 0;
+      return {
+        id,
+        title: parseField(f.title) || '',
+        price: parseFloat(parseField(f.price)) || 0,
+        description: parseField(f.description) || '',
+        category: parseField(f.category) || 'Outro',
+        stock: parseInt(parseField(f.stock)) || 0,
+        imageUrl: parseField(f.imageUrl) || '',
+        createdAt: { seconds: ts }
+      };
     });
-    console.log('[Geek] carregados:', geekProducts.length, 'snap.size:', snap.size);
+    geekProducts.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
     document.getElementById('statGeek') && (document.getElementById('statGeek').textContent = geekProducts.length);
-    // Atualizar o grid se a aba estiver ativa
-    const panel = document.getElementById('panel-geek');
-    if (panel && panel.classList.contains('active')) renderGeek();
-    else renderGeek(); // renderizar mesmo assim para preparar
+    renderGeek();
   } catch(e) {
     console.error('Geek load error:', e);
     const grid = document.getElementById('geekGrid');
-    if (grid) grid.innerHTML = `<div style="grid-column:1/-1;color:#f87171;padding:20px;font-size:12px">Erro: ${e.code||''} ${e.message||e}</div>`;
+    if (grid) grid.innerHTML = `<div style="grid-column:1/-1;color:#f87171;padding:20px;font-size:12px">Erro: ${e.message||e}</div>`;
   }
 }
 
