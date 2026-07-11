@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banca da Matriz</title>
+  <meta name="description" content="Peças eletrônicas e produtos digitais em Planaltina DF">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #7c3aed;
+      --primary-light: #8b5cf6;
+      --primary-dark: #6d28d9;
+      --green: #10b981;
+      --green-dark: #059669;
+      --red: #f43f5e;
+      --bg: #0f0f1a;
+      --bg2: #16162a;
+      --text: #f1f5f9;
+      --text-light: #94a3b8;
+      --border: #2d2d4a;
+      --card: #1a1a2e;
+      --card-hover: #1e1e38;
+      --accent: #f59e0b;
+      --shadow: 0 4px 24px rgba(124,58,237,0.15);
+      --glow: 0 0 20px rgba(124,58,237,0.3);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height:100vh; }
+
+    /* ===== HEADER ===== */
+    header {
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a0a2e 50%, #0f0f1a 100%);
+      border-bottom: 1px solid rgba(124,58,237,0.4);
+      color: white; padding: 14px 16px;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 4px 30px rgba(124,58,237,0.2);
+    }
+    .header-inner { max-width: 960px; margin: 0 auto; }
+    .header-top { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .logo { width:44px; height:44px; border-radius:50%; border:2px solid var(--primary); object-fit:cover; box-shadow: 0 0 12px rgba(124,58,237,0.5); }
+    .brand-info h1 { font-size:18px; font-weight:800; background: linear-gradient(90deg,#a78bfa,#f59e0b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .brand-info p { font-size:11px; color:#94a3b8; }
+    .header-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+    #authBtn {
+      background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.5);
+      color: #c4b5fd; padding: 7px 14px; border-radius: 20px; font-size:13px;
+      cursor: pointer; display:flex; align-items:center; gap:6px; white-space:nowrap;
+      transition: all .2s;
+    }
+    #authBtn:hover { background: rgba(124,58,237,0.4); border-color: var(--primary); }
+    #authBtn img { width:20px; height:20px; border-radius:50%; }
+    #adminLink {
+      background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4);
+      color: #fde68a; padding: 7px 12px; border-radius: 20px; font-size:12px;
+      cursor: pointer; text-decoration:none; display:none;
+    }
+
+    /* ===== SEARCH ===== */
+    .search-wrap { position:relative; }
+    .search-wrap svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); width:18px; height:18px; fill:#94a3b8; }
+    .search-input {
+      width:100%; padding:11px 16px 11px 42px;
+      border-radius:50px; border:none; outline:none; font-size:15px;
+      background:rgba(255,255,255,0.07); color:white;
+      backdrop-filter:blur(8px);
+      border:1px solid rgba(124,58,237,0.35);
+      transition: all .2s;
+    }
+    .search-input::placeholder { color:rgba(255,255,255,0.4); }
+    .search-input:focus { background:rgba(124,58,237,0.15); border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+
+    /* ===== TABS ===== */
+    .tabs-bar {
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      position: sticky; top: 120px; z-index: 150;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .tabs-inner { max-width:960px; margin:0 auto; display:flex; }
+    .tab-btn {
+      flex: 1; padding: 14px 8px; text-align:center;
+      font-size: 14px; font-weight: 600; color: var(--text-light);
+      cursor: pointer; border: none; background: none;
+      border-bottom: 3px solid transparent; transition: all .2s;
+    }
+    .tab-btn.active { color: #a78bfa; border-bottom-color: var(--primary); }
+    .tab-btn:hover:not(.active) { color: var(--text); background: rgba(124,58,237,0.07); }
+
+    /* ===== MAIN ===== */
+    .main { max-width: 960px; margin: 0 auto; padding: 16px; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* ===== FILTROS ===== */
+    .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .filters.scroll-x { flex-wrap:nowrap !important; overflow-x:auto !important; padding-bottom:6px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+    .filters.scroll-x::-webkit-scrollbar { display:none; }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
+      cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text-light);
+      transition: all .15s; white-space:nowrap; flex-shrink:0;
+    }
+    .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 12px rgba(124,58,237,0.4); }
+    .filter-btn:hover:not(.active) { border-color: var(--primary); color: #a78bfa; }
+
+    /* ===== BRAND SECTION ===== */
+    .brand-section { margin-bottom: 28px; }
+    .brand-header {
+      display:flex; align-items:center; gap:8px;
+      padding: 10px 0; border-bottom: 2px solid var(--primary); margin-bottom:12px;
+    }
+    .brand-emoji { height:26px; display:flex; align-items:center; filter: brightness(1.2); }
+    .brand-name { font-size:17px; font-weight:800; color:#a78bfa; flex:1; letter-spacing:-0.3px; }
+    .brand-count { font-size:11px; color:var(--text-light); background:var(--border); padding:2px 8px; border-radius:10px; }
+    .type-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--primary-light); margin:12px 0 8px; opacity:0.8; }
+
+    /* ===== PRODUCT GRID ===== */
+    .products-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+    .product-card {
+      background: var(--card); border-radius:14px; overflow:hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow); cursor:pointer; transition: transform .2s, box-shadow .2s, border-color .2s;
+      position:relative;
+    }
+    .product-card:hover { transform:translateY(-3px); box-shadow: var(--glow); border-color: rgba(124,58,237,0.5); }
+    .btn-archive {
+      position:absolute; top:6px; right:6px; z-index:10;
+      background:rgba(15,15,25,0.75); border:none; border-radius:8px;
+      width:30px; height:30px; display:none; align-items:center; justify-content:center;
+      cursor:pointer; font-size:15px; backdrop-filter:blur(4px);
+      transition: background .2s;
+    }
+    .btn-archive:hover { background:rgba(239,68,68,0.8); }
+    .btn-archive[title="Editar"]:hover { background:rgba(124,58,237,0.8) !important; }
+    .product-card:hover .btn-archive { display:flex; }
+    .digital-card:hover .btn-archive { display:flex; }
+    /* card arquivado */
+    .archived-card {
+      background:var(--card); border-radius:12px; border:1px solid var(--border);
+      padding:12px; display:flex; align-items:center; gap:12px;
+    }
+    .archived-card img { width:50px; height:50px; object-fit:cover; border-radius:8px; }
+    .archived-card .no-img-sm { width:50px; height:50px; border-radius:8px; background:var(--bg2); display:flex; align-items:center; justify-content:center; font-size:22px; }
+    .archived-card .arc-info { flex:1; min-width:0; }
+    .archived-card .arc-name { font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .archived-card .arc-sub { font-size:11px; color:var(--text-light); margin-top:2px; }
+    .archived-card .arc-actions { display:flex; gap:8px; flex-shrink:0; }
+    .btn-restore { background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+    .btn-restore:hover { background:rgba(52,211,153,0.3); }
+    .btn-delete-perm { background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+    .btn-delete-perm:hover { background:rgba(239,68,68,0.3); }
+    .archived-list { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+    .product-card img { width:100%; aspect-ratio:1; object-fit:cover; background:var(--bg2); }
+    .product-card .no-img { width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; background:var(--bg2); font-size:36px; }
+    .product-info { padding:8px 10px 10px; }
+    .product-name { font-size:12px; font-weight:600; color:var(--text); line-height:1.3; margin-bottom:4px; }
+    .product-price { font-size:15px; font-weight:800; color:#34d399; margin-bottom:8px; }
+    .product-actions { display:flex; gap:5px; }
+    .btn-cart {
+      flex:1; padding:6px 4px; border-radius:8px; font-size:11px; font-weight:700;
+      cursor:pointer; border:1.5px solid rgba(124,58,237,0.6); background:transparent; color:#a78bfa;
+      display:flex; align-items:center; justify-content:center; gap:3px; transition:all .15s;
+    }
+    .btn-cart:hover { background:rgba(124,58,237,0.15); border-color:var(--primary); }
+    .btn-cart.added { border-color:var(--green); color:var(--green); background:rgba(16,185,129,0.1); }
+    .btn-buy-card {
+      flex:1; padding:6px 4px; border-radius:8px; font-size:11px; font-weight:700;
+      cursor:pointer; border:none; background: linear-gradient(135deg,var(--primary),var(--primary-light)); color:white;
+      display:flex; align-items:center; justify-content:center; gap:3px; transition:all .15s;
+      box-shadow: 0 2px 8px rgba(124,58,237,0.3);
+    }
+    .btn-buy-card:hover { background: linear-gradient(135deg,var(--primary-dark),var(--primary)); box-shadow: 0 4px 12px rgba(124,58,237,0.5); }
+
+    /* ===== CARRINHO ===== */
+    #cartBtn {
+      position:fixed; bottom:20px; right:16px; z-index:500;
+      background: linear-gradient(135deg,var(--primary),var(--primary-light)); color:white; border:none; border-radius:50px;
+      padding:12px 18px; font-size:15px; font-weight:700; cursor:pointer;
+      box-shadow:0 4px 20px rgba(124,58,237,0.5); display:none;
+      align-items:center; gap:8px; transition:all .2s;
+    }
+    #cartBtn:hover { transform:scale(1.05); box-shadow:0 6px 28px rgba(124,58,237,0.7); }
+    #cartBadge {
+      background:#f43f5e; color:white; border-radius:50%; width:20px; height:20px;
+      font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center;
+    }
+    /* Painel carrinho */
+    #cartPanel {
+      display:none; position:fixed; top:0; right:0; width:min(360px,100vw);
+      height:100vh; background:var(--bg2); z-index:2000; flex-direction:column;
+      box-shadow:-4px 0 40px rgba(0,0,0,0.6); border-left:1px solid var(--border);
+    }
+    #cartPanel.open { display:flex; }
+    .cart-header {
+      background: linear-gradient(135deg,#1a0a2e,#2d1b69);
+      border-bottom: 1px solid rgba(124,58,237,0.4);
+      color:white; padding:16px 20px; display:flex; align-items:center; gap:10px;
+    }
+    .cart-header h3 { flex:1; font-size:16px; font-weight:700; color:#a78bfa; }
+    .cart-list { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; }
+    .cart-item {
+      display:flex; align-items:center; gap:10px; background:var(--card);
+      border-radius:12px; padding:10px; border:1px solid var(--border);
+    }
+    .cart-item img { width:50px; height:50px; object-fit:cover; border-radius:8px; background:var(--border); }
+    .cart-item-info { flex:1; }
+    .cart-item-name { font-size:13px; font-weight:600; color:var(--text); }
+    .cart-item-price { font-size:14px; font-weight:800; color:#34d399; }
+    .cart-item-qty { display:flex; align-items:center; gap:6px; margin-top:4px; }
+    .qty-btn { width:24px; height:24px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; cursor:pointer; font-weight:700; }
+    .cart-item-del { background:none; border:none; color:#f43f5e; font-size:18px; cursor:pointer; padding:4px; }
+    .cart-footer { padding:16px; border-top:1px solid var(--border); background:var(--card); }
+    .cart-total { display:flex; justify-content:space-between; font-size:17px; font-weight:800; margin-bottom:12px; color:var(--text); }
+    .cart-total span:last-child { color:#34d399; }
+    .btn-checkout-cart {
+      width:100%; padding:14px; background: linear-gradient(135deg,#059669,#10b981); color:white; border:none;
+      border-radius:12px; font-size:15px; font-weight:700; cursor:pointer;
+      box-shadow: 0 4px 15px rgba(16,185,129,0.4);
+    }
+    .btn-checkout-cart:hover { background: linear-gradient(135deg,#047857,#059669); }
+    .product-badge {
+      position:absolute; top:6px; right:6px;
+      background: linear-gradient(135deg,var(--green),#34d399); color:white; font-size:10px; font-weight:700;
+      padding:2px 6px; border-radius:6px; box-shadow: 0 2px 6px rgba(16,185,129,0.4);
+    }
+    .btn-whatsapp {
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      background: linear-gradient(135deg,#25d366,#1ebe5d); color:white; border:none; border-radius:0 0 12px 12px;
+      padding:8px; font-size:12px; font-weight:600; cursor:pointer; width:100%;
+      text-decoration:none; transition: all .15s;
+    }
+    .btn-whatsapp:hover { background: linear-gradient(135deg,#1ebe5d,#17a34a); }
+
+    /* ===== NO RESULTS ===== */
+    .no-results { text-align:center; padding:60px 20px; color:var(--text-light); display:none; }
+    .no-results .icon { font-size:48px; margin-bottom:12px; }
+
+    /* ===== DIGITAL PRODUCTS ===== */
+    .digital-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; margin-top:16px; }
+    .digital-card {
+      background:var(--card); border-radius:16px; overflow:hidden;
+      border:1px solid var(--border);
+      box-shadow:var(--shadow); transition:transform .15s, box-shadow .2s;
+    }
+    .digital-card:hover { transform:translateY(-2px); box-shadow:var(--glow); border-color:rgba(124,58,237,0.4); }
+    .digital-cover {
+      width:100%; height:160px; object-fit:cover; background: linear-gradient(135deg,#1a0a2e,#2d1b69);
+      display:flex; align-items:center; justify-content:center; font-size:60px;
+    }
+    .digital-cover img { width:100%; height:160px; object-fit:cover; }
+    .digital-body { padding:16px; }
+    .digital-title { font-size:15px; font-weight:700; margin-bottom:4px; color:var(--text); }
+    .digital-desc { font-size:13px; color:var(--text-light); margin-bottom:12px; line-height:1.4; }
+    .digital-footer { display:flex; align-items:center; justify-content:space-between; }
+    .digital-price { font-size:18px; font-weight:800; color:var(--green-dark); }
+    .btn-buy {
+      background:var(--primary); color:white; border:none; border-radius:8px;
+      padding:8px 16px; font-size:14px; font-weight:600; cursor:pointer;
+    }
+    .btn-buy:hover { background:var(--primary-light); }
+    .digital-tag {
+      display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase;
+      padding:2px 8px; border-radius:6px; margin-bottom:8px;
+      background:#ede9fe; color:#7c3aed;
+    }
+
+    /* ===== UPLOAD DIGITAL ===== */
+    .upload-section {
+      background:var(--card); border-radius:16px; padding:24px; margin-bottom:24px;
+      box-shadow:var(--shadow); display:none; border:1px solid var(--border);
+    }
+    .upload-section h3 { font-size:16px; font-weight:700; margin-bottom:16px; color:#a78bfa; }
+    .form-group { margin-bottom:14px; }
+    .form-group label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--text-light); }
+    .form-control {
+      width:100%; padding:10px 14px; border:1px solid var(--border);
+      border-radius:8px; font-size:14px; outline:none;
+      background:var(--bg); color:var(--text);
+    }
+    .form-control:focus { border-color:var(--primary); }
+    .btn-save {
+      background: linear-gradient(135deg,var(--green-dark),var(--green)); color:white; border:none; border-radius:8px;
+      padding:10px 24px; font-size:14px; font-weight:600; cursor:pointer;
+    }
+
+    /* ===== CHAT / ORDER ===== */
+    .modal-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7);
+      z-index:1000; align-items:center; justify-content:center;
+      backdrop-filter:blur(4px);
+    }
+    .modal-overlay.open { display:flex; }
+    .modal {
+      background:var(--card); border-radius:20px; width:94%; max-width:480px;
+      max-height:90vh; overflow:hidden; display:flex; flex-direction:column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6); border:1px solid var(--border);
+    }
+    .modal-header {
+      background: linear-gradient(135deg,#1a0a2e,#2d1b69);
+      border-bottom:1px solid rgba(124,58,237,0.4);
+      color:white; padding:16px 20px;
+      display:flex; align-items:center; gap:12px;
+    }
+    .modal-header h3 { flex:1; font-size:16px; color:#a78bfa; }
+    .modal-close { background:none; border:none; color:#94a3b8; font-size:22px; cursor:pointer; line-height:1; }
+    .modal-body { flex:1; overflow-y:auto; padding:20px; }
+    .modal-footer { padding:16px 20px; border-top:1px solid var(--border); background:var(--bg2); }
+
+    /* Product detail */
+    .detail-img { width:100%; max-height:220px; object-fit:cover; border-radius:12px; margin-bottom:16px; }
+    .detail-name { font-size:18px; font-weight:800; margin-bottom:4px; color:var(--text); }
+    .detail-price { font-size:24px; font-weight:800; color:#34d399; margin-bottom:16px; }
+    .detail-row { display:flex; gap:8px; }
+    .detail-row a, .detail-row button {
+      flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+      padding:12px; border-radius:12px; font-size:14px; font-weight:600;
+      cursor:pointer; border:none; text-decoration:none;
+    }
+    .btn-wpp { background:linear-gradient(135deg,#25d366,#1ebe5d); color:white; }
+    .btn-wpp:hover { background:linear-gradient(135deg,#1ebe5d,#17a34a); }
+
+    /* Checkout */
+    .checkout-steps { display:flex; gap:8px; margin-bottom:20px; }
+    .step {
+      flex:1; text-align:center; font-size:11px; font-weight:600;
+      padding:8px 4px; border-radius:8px; background:var(--border); color:var(--text-light);
+    }
+    .step.active { background:var(--primary); color:white; }
+    .step.done { background:var(--green); color:white; }
+    .contact-form { display:flex; flex-direction:column; gap:12px; }
+    .contact-form input {
+      padding:12px 14px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none;
+      background:var(--bg); color:var(--text);
+    }
+    .contact-form input:focus { border-color:var(--primary); }
+
+    /* Chat */
+    .chat-messages {
+      height:260px; overflow-y:auto; border:1px solid var(--border);
+      border-radius:12px; padding:12px; background:var(--bg); margin-bottom:12px;
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .msg {
+      max-width:80%; padding:8px 12px; border-radius:12px; font-size:13px; line-height:1.4;
+    }
+    .msg.bot { background:var(--card); border:1px solid var(--border); align-self:flex-start; color:var(--text); }
+    .msg.user { background: linear-gradient(135deg,var(--primary),var(--primary-light)); color:white; align-self:flex-end; }
+    .msg.system { background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); color:#fde68a; align-self:center; font-size:12px; text-align:center; max-width:100%; }
+    .chat-input-row { display:flex; gap:8px; }
+    .chat-input {
+      flex:1; padding:10px 14px; border:1px solid var(--border); border-radius:20px;
+      font-size:14px; outline:none; background:var(--bg); color:var(--text);
+    }
+    .chat-input:focus { border-color:var(--primary); }
+    .chat-send {
+      background: linear-gradient(135deg,var(--primary),var(--primary-light)); color:white; border:none; border-radius:50%;
+      width:40px; height:40px; cursor:pointer; font-size:18px; display:flex;
+      align-items:center; justify-content:center;
+    }
+
+    /* ADMIN PANEL */
+    .admin-section {
+      background:var(--card); border-radius:16px; padding:24px; margin-bottom:20px;
+      box-shadow:var(--shadow); border:1px solid var(--border);
+    }
+    .admin-section h3 { font-size:16px; font-weight:700; margin-bottom:16px; color:#a78bfa; border-bottom:1px solid var(--border); padding-bottom:10px; }
+    .collab-item {
+      display:flex; align-items:center; gap:12px; padding:10px 0;
+      border-bottom:1px solid var(--border);
+    }
+    .collab-avatar { width:36px; height:36px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+    .collab-info { flex:1; }
+    .collab-name { font-size:14px; font-weight:600; color:var(--text); }
+    .collab-email { font-size:12px; color:var(--text-light); }
+    .collab-role { font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700; }
+    .role-admin { background:rgba(245,158,11,0.15); color:#fbbf24; }
+    .role-collab { background:rgba(124,58,237,0.15); color:#a78bfa; }
+    .btn-remove { background:none; border:none; color:var(--red); cursor:pointer; font-size:18px; }
+    .invite-row { display:flex; gap:8px; margin-top:12px; }
+    .invite-row input { flex:1; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none; background:var(--bg); color:var(--text); }
+    .invite-row select { padding:10px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none; background:var(--bg); color:var(--text); }
+    .btn-invite { background:var(--primary); color:white; border:none; border-radius:8px; padding:10px 16px; font-size:14px; font-weight:600; cursor:pointer; }
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    .stat-card { background:var(--bg); border-radius:12px; padding:16px; text-align:center; border:1px solid var(--border); }
+    .stat-val { font-size:28px; font-weight:800; color:#a78bfa; }
+    .stat-label { font-size:12px; color:var(--text-light); margin-top:4px; }
+
+    /* FOOTER */
+    footer { background: linear-gradient(135deg,#1a0a2e,#0f0f1a); color:#94a3b8; text-align:center; padding:20px; margin-top:40px; border-top:1px solid var(--border); }
+    footer a { color:#a78bfa; text-decoration:none; }
+
+    /* TOAST */
+    #toast {
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(100px);
+      background: linear-gradient(135deg,#1a0a2e,#2d1b69); color:white; padding:12px 24px; border-radius:12px;
+      font-size:14px; z-index:9999; transition:transform .3s; pointer-events:none;
+      border:1px solid rgba(124,58,237,0.5); box-shadow:0 4px 20px rgba(124,58,237,0.3);
+    }
+    #toast.show { transform:translateX(-50%) translateY(0); }
+
+    @media(max-width:600px) {
+      .digital-grid { grid-template-columns:1fr 1fr; }
+      .stats-grid { grid-template-columns:1fr; }
+    }
+
+    /* ===== PAINEL DE NOTIFICAÇÕES ===== */
+    #notifPanel {
+      display:none; position:fixed; top:0; right:0; width:min(360px,100vw);
+      height:100vh; background:var(--bg2); z-index:2000;
+      box-shadow:-4px 0 40px rgba(0,0,0,0.6); flex-direction:column;
+      overflow:hidden; border-left:1px solid var(--border);
+    }
+    #notifPanel.open { display:flex; }
+    .notif-header {
+      background: linear-gradient(135deg,#1a0a2e,#2d1b69);
+      border-bottom:1px solid rgba(124,58,237,0.4);
+      color:white; padding:16px 20px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .notif-header h3 { flex:1; font-size:16px; font-weight:700; color:#a78bfa; }
+    .notif-list { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; }
+    .notif-empty { text-align:center; padding:40px 20px; color:#94a3b8; }
+    .notif-card {
+      border-radius:14px; border:1.5px solid var(--border); padding:14px;
+      background:var(--card); cursor:pointer; transition:all .15s;
+      position:relative;
+    }
+    .notif-card.novo { border-color:#10b981; background:rgba(16,185,129,0.08); }
+    .notif-card:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(124,58,237,0.2); border-color:var(--primary); }
+    .notif-card .nc-badge {
+      display:inline-block; padding:2px 8px; border-radius:20px;
+      font-size:10px; font-weight:700; text-transform:uppercase;
+      background:rgba(16,185,129,0.2); color:#34d399; margin-bottom:6px;
+    }
+    .notif-card.pago .nc-badge { background:rgba(124,58,237,0.2); color:#a78bfa; }
+    .notif-card .nc-produto { font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px; }
+    .notif-card .nc-preco { font-size:20px; font-weight:800; color:#34d399; }
+    .notif-card .nc-info { font-size:12px; color:var(--text-light); margin-top:6px; line-height:1.6; }
+    .notif-card .nc-entrega {
+      display:inline-block; background:rgba(124,58,237,0.15); color:#a78bfa;
+      border-radius:6px; padding:3px 8px; font-size:11px; font-weight:600; margin-top:6px;
+    }
+    .notif-card .nc-ack {
+      margin-top:10px; width:100%; background: linear-gradient(135deg,var(--primary),var(--primary-light)); color:white;
+      border:none; border-radius:8px; padding:8px; font-size:12px;
+      font-weight:700; cursor:pointer;
+    }
+    .notif-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1999; }
+    .notif-overlay.open { display:block; }
+
+    @keyframes bellShake {
+      0%,100%{transform:rotate(0)} 20%{transform:rotate(-20deg)} 40%{transform:rotate(20deg)}
+      60%{transform:rotate(-15deg)} 80%{transform:rotate(15deg)}
+    }
+    .bell-shake { animation: bellShake .6s ease 3; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="header-top">
+      <img src="https://share.zapia.com/qd7w3euam7ryo7ldqxekxp" class="logo" alt="Banca da Matriz" onerror="this.style.display='none'">
+      <div class="brand-info">
+        <h1>Banca da Matriz</h1>
+        <p>Planaltina DF · Peças &amp; Digital</p>
+      </div>
+      <div class="header-right">
+        <a id="adminLink" href="#">⚙️ Admin</a>
+        <button id="notifBtn" onclick="toggleNotifPanel()" style="display:none;position:relative;background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;margin-left:4px" title="Pedidos">
+          🔔<span id="notifBadge" style="display:none;position:absolute;top:0;right:0;background:#ef4444;color:white;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;line-height:16px;text-align:center">0</span>
+        </button>
+        <button id="authBtn" onclick="handleAuth()" title="Entrar com Google">
+          <svg id="googleIcon" width="15" height="15" viewBox="0 0 24 24" style="flex-shrink:0;vertical-align:middle"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          <span id="authBtnText"> Entrar</span>
+        </button>
+      </div>
+    </div>
+    <div class="search-wrap" id="searchWrap">
+      <svg viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" stroke="#94a3b8" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <input type="search" class="search-input" id="searchInput" placeholder="Buscar peças, marcas, modelos..." autocomplete="off">
+    </div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <div class="tabs-inner">
+    <button class="tab-btn active" onclick="switchTab('pecas',this)">🔧 Peças</button>
+    <button class="tab-btn" onclick="switchTab('digital',this)">📚 Digital</button>
+    <button class="tab-btn" onclick="switchTab('geek',this)">🎮 Geek</button>
+    <button class="tab-btn" id="tabAdmin" onclick="switchTab('admin',this)" style="display:none">⚙️ Admin</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ===== ABA PEÇAS ===== -->
+  <div class="tab-panel active" id="panel-pecas">
+    <!-- Botão adicionar peça (só staff) -->
+    <div id="addPecaBtn" style="display:none;margin-bottom:12px">
+      <button onclick="openAddPecaModal()" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px">➕ Adicionar Peça</button>
+    </div>
+    <div class="filters" id="brandFilters">
+      <button class="filter-btn active" onclick="filterBrand('',this)">Todas</button>
+    </div>
+    <div id="pecasCatalog"></div>
+    <div class="no-results" id="no-results">
+      <div class="icon">🔍</div>
+      <p>Nenhuma peça encontrada.</p>
+    </div>
+  </div>
+
+  <!-- ===== ABA DIGITAL ===== -->
+  <div class="tab-panel" id="panel-digital">
+    <!-- Formulário de upload (só admin/collab) -->
+    <div class="upload-section" id="uploadSection">
+      <h3>➕ Adicionar Produto Digital</h3>
+      <div class="form-group">
+        <label>Título</label>
+        <input type="text" class="form-control" id="dTitle" placeholder="Nome do curso, apostila...">
+      </div>
+      <div class="form-group">
+        <label>Descrição curta</label>
+        <input type="text" class="form-control" id="dDesc" placeholder="Breve descrição">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select class="form-control" id="dCat">
+          <option>Curso</option>
+          <option>Apostila</option>
+          <option>Gibi/HQ</option>
+          <option>Livro</option>
+          <option>Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Preço (R$)</label>
+        <input type="number" class="form-control" id="dPrice" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>URL do PDF (Google Drive, Dropbox...)</label>
+        <input type="url" class="form-control" id="dUrl" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>Imagem de capa (URL)</label>
+        <input type="url" class="form-control" id="dImg" placeholder="https://... (opcional)">
+      </div>
+      <button class="btn-save" onclick="saveDigital()">💾 Salvar Produto</button>
+    </div>
+    <div class="digital-grid" id="digitalGrid">
+      <div style="text-align:center;padding:60px 20px;color:#64748b;grid-column:1/-1">
+        <div style="font-size:48px;margin-bottom:12px">📚</div>
+        <p>Nenhum produto digital ainda.</p>
+        <p style="font-size:12px;margin-top:4px">Em breve chegam cursos, apostilas e muito mais!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ABA ADMIN ===== -->
+  <div class="tab-panel" id="panel-geek">
+    <!-- Formulário de upload (só admin/collab) -->
+    <div class="upload-section" id="uploadSectionGeek">
+      <h3>➕ Adicionar Produto Geek</h3>
+      <div class="form-group">
+        <label>Nome do produto</label>
+        <input type="text" class="form-control" id="gkTitle" placeholder="Ex: Action Figure Naruto, Mouse Gamer...">
+      </div>
+      <div class="form-group">
+        <label>Descrição curta</label>
+        <input type="text" class="form-control" id="gkDesc" placeholder="Breve descrição">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select class="form-control" id="gkCat">
+          <option>Action Figure</option>
+          <option>Acessório Gamer</option>
+          <option>Camiseta</option>
+          <option>Caneca</option>
+          <option>Quadro/Poster</option>
+          <option>Colecionável</option>
+          <option>Periférico</option>
+          <option>Cabo/Adaptador</option>
+          <option>Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Preço (R$)</label>
+        <input type="number" class="form-control" id="gkPrice" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Estoque</label>
+        <input type="number" class="form-control" id="gkStock" placeholder="Quantidade disponível" min="0">
+      </div>
+      <div class="form-group">
+        <label>Imagem (URL)</label>
+        <input type="url" class="form-control" id="gkImg" placeholder="https://... (opcional)">
+      </div>
+      <button class="btn-save" onclick="saveGeek()">💾 Salvar Produto</button>
+    </div>
+
+    <!-- Filtros por categoria -->
+    <div class="filters scroll-x" id="geekFilters">
+      <button class="filter-btn active" onclick="filterGeek('todos',this)">Todos</button>
+      <button class="filter-btn" onclick="filterGeek('Action Figure',this)">Action Figure</button>
+      <button class="filter-btn" onclick="filterGeek('Acessório Gamer',this)">Gamer</button>
+      <button class="filter-btn" onclick="filterGeek('Colecionável',this)">Colecionável</button>
+      <button class="filter-btn" onclick="filterGeek('Periférico',this)">Periférico</button>
+      <button class="filter-btn" onclick="filterGeek('Outro',this)">Outros</button>
+    </div>
+
+    <div class="digital-grid" id="geekGrid">
+      <div style="text-align:center;padding:60px 20px;color:#64748b;grid-column:1/-1">
+        <div style="font-size:48px;margin-bottom:12px">🎮</div>
+        <p style="font-weight:600;color:var(--text)">Em breve!</p>
+        <p style="font-size:13px;margin-top:6px;color:var(--text-light)">Action figures, acessórios gamer, colecionáveis e muito mais chegando aqui.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ABA ADMIN ===== -->
+  <div class="tab-panel" id="panel-admin">
+    <div class="admin-section">
+      <h3>📊 Resumo</h3>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="statPecas">0</div>
+          <div class="stat-label">Peças no catálogo</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statDigital">0</div>
+          <div class="stat-label">Produtos digitais</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statGeek">0</div>
+          <div class="stat-label">Geek & Acessórios</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statOrders">0</div>
+          <div class="stat-label">Pedidos hoje</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>🗃️ Produtos Arquivados</h3>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="filter-btn active" id="arcTabPecas" onclick="switchArchiveTab('pecas')">🔧 Peças</button>
+        <button class="filter-btn" id="arcTabDigital" onclick="switchArchiveTab('digital')">📚 Digital</button>
+        <button class="filter-btn" id="arcTabGeek" onclick="switchArchiveTab('geek')">🎮 Geek</button>
+      </div>
+      <div class="archived-list" id="archivedList">
+        <p style="color:var(--text-light);font-size:13px;text-align:center;padding:20px">Nenhum produto arquivado.</p>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>👥 Colaboradores</h3>
+      <div id="collabList"></div>
+      <div class="invite-row">
+        <input type="email" id="inviteEmail" placeholder="email@exemplo.com">
+        <select id="inviteRole">
+          <option value="colaborador">Colaborador</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button class="btn-invite" onclick="inviteCollab()">Convidar</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>📦 Pedidos Recentes</h3>
+      <div id="ordersList" style="color:var(--text-light);font-size:14px">Nenhum pedido ainda.</div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<footer>
+  <p>© 2026 Banca da Matriz · Planaltina DF</p>
+  <p style="margin-top:6px"><a href="https://wa.me/5561984611071?text=Olá!%20Preciso%20de%20suporte." style="display:inline-flex;align-items:center;gap:6px;color:#25d366;font-weight:600;text-decoration:none">💬 Falar com suporte no WhatsApp</a></p>
+</footer>
+
+<!-- MODAL DETALHE / CHECKOUT -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Produto</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+  apiKey: "AIzaSyAoZYnDTl8WoCG5K3q6hjFQnVFmkAS6PZ8",
+  authDomain: "bancadamatriz-9f797.firebaseapp.com",
+  projectId: "bancadamatriz-9f797",
+  storageBucket: "bancadamatriz-9f797.firebasestorage.app",
+  messagingSenderId: "103939771236",
+  appId: "1:103939771236:web:d23f7d1852a99621ebc871"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+db.settings({ experimentalForceLongPolling: true, merge: true });
+
+// ===== OWNER EMAIL =====
+const OWNER_EMAIL = 'djgugathebest@gmail.com';
+const WPP = '5561984611071';
+
+let currentUser = null;
+let userRole = null; // 'owner' | 'admin' | 'colaborador' | null
+let isStaff = false;
+
+// ===== AUTH =====
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('authBtnText').innerHTML = `<img src="${user.photoURL}" onerror="this.outerHTML='👤'"> ${user.displayName?.split(' ')[0] || 'Você'}`;
+    // Verificar papel
+    if (user.email === OWNER_EMAIL) {
+      userRole = 'owner';
+    } else {
+      const snap = await db.collection('team').doc(user.email).get();
+      userRole = snap.exists ? snap.data().role : null;
+    }
+    updateAdminUI();
+  } else {
+    document.getElementById('authBtnText').textContent = '🔑 Entrar';
+    userRole = null;
+    updateAdminUI();
+  }
+});
+
+function updateAdminUI() {
+  isStaff = userRole === 'owner' || userRole === 'admin' || userRole === 'colaborador';
+  document.getElementById('adminLink').style.display = isStaff ? 'inline-flex' : 'none';
+  document.getElementById('tabAdmin').style.display = isStaff ? 'block' : 'none';
+  document.getElementById('uploadSection').style.display = isStaff ? 'block' : 'none';
+  document.getElementById('uploadSectionGeek').style.display = isStaff ? 'block' : 'none';
+  document.getElementById('addPecaBtn').style.display = isStaff ? 'block' : 'none';
+  if (isStaff) loadAdminData();
+  // Re-renderizar cards para mostrar botões de admin
+  renderPecas(activeBrand, document.getElementById('searchInput')?.value || '');
+  if (digitalProducts.length) renderDigital();
+  renderGeek();
+}
+
+function handleAuth() {
+  if (currentUser) {
+    auth.signOut();
+    showToast('Saiu da conta.');
+  } else {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(e => showToast('Erro no login: ' + e.message));
+  }
+}
+
+document.getElementById('adminLink').onclick = (e) => {
+  e.preventDefault();
+  switchTab('admin', document.getElementById('tabAdmin'));
+};
+
+// ===== TABS =====
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('searchWrap').style.display = name === 'pecas' ? 'block' : 'none';
+  if (name === 'admin' && isStaff) loadArchivedProducts();
+  if (name === 'geek') loadGeek();
+}
+
+// ===== PRODUTOS DE PEÇAS =====
+const PRODUCTS = [{"id":0,"name":"Bateria iPhone 12 Original Retirada","img":"/imgs/peca_1774384359_69c2f4e7e41ad.jpg","price":85.0,"priceStr":"R$ 85,00","brand":"Apple","type":"Bateria","search":"bateria iphone 12 original retirada apple bateria"},{"id":1,"name":"Bateria iPhone 8 plus Original Retirada","img":"/imgs/peca_1774384261_69c2f4855c5f7.jpg","price":45.0,"priceStr":"R$ 45,00","brand":"Apple","type":"Bateria","search":"bateria iphone 8 plus original retirada apple bateria"},{"id":2,"name":"Flex de Carga iPhone 7g Original Retirada","img":"/imgs/peca_1774386985_69c2ff29d6149.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Apple","type":"Flex de Carga","search":"flex de carga iphone 7g original retirada apple flex de carga"},{"id":3,"name":"Flex de Carga iPhone 8 Plus Original Retirada","img":"/imgs/peca_1774387126_69c2ffb62105a.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Apple","type":"Flex de Carga","search":"flex de carga iphone 8 plus original retirada apple flex de carga"},{"id":4,"name":"Tela Display Iphone 5 A1429 A1428","img":"/imgs/peca_1776957877_69ea39b54756e.jpeg","price":40.0,"priceStr":"R$ 40,00","brand":"Apple","type":"Tela","search":"tela display iphone 5 a1429 a1428 apple tela"},{"id":5,"name":"Sub Placa Asus ZenFone 2 Retirada","img":"/imgs/peca_1775064821_69cd56f525e7b.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Asus","type":"Sub Placa","search":"sub placa asus zenfone 2 retirada asus sub placa"},{"id":6,"name":"Sub Placa Asus ZenFone 3 zoom Retirada","img":"/imgs/peca_1775065089_69cd5801cf580.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Asus","type":"Sub Placa","search":"sub placa asus zenfone 3 zoom retirada asus sub placa"},{"id":7,"name":"Sub Placa Asus ZenFone 5 Retirada","img":"/imgs/peca_1775064933_69cd5765e1616.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Asus","type":"Sub Placa","search":"sub placa asus zenfone 5 retirada asus sub placa"},{"id":8,"name":"Tela Asus Zenfone Selfie","img":"/imgs/peca_1776956642_69ea34e21b0ba.jpg","price":59.9,"priceStr":"R$ 59,90","brand":"Asus","type":"Tela","search":"tela asus zenfone selfie asus tela"},{"id":9,"name":"Tela Frontal Display Zenfone Max Shot Zb634kl","img":"/imgs/peca_1776957695_69ea38ff2ea96.jpeg","price":50.0,"priceStr":"R$ 50,00","brand":"Asus","type":"Tela","search":"tela frontal display zenfone max shot zb634kl asus tela"},{"id":10,"name":"Tela Zenfone Max Pro M2 Zb631kl","img":"/imgs/peca_1776957096_69ea36a8a5551.jpg","price":59.9,"priceStr":"R$ 59,90","brand":"Asus","type":"Tela","search":"tela zenfone max pro m2 zb631kl asus tela"},{"id":11,"name":"Sub Placa K41s Retirada","img":"/imgs/peca_1775062677_69cd4e9572fcf.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"LG","type":"Conector","search":"sub placa k41s retirada lg conector"},{"id":12,"name":"Tela Frontal Touch Display Lcd Compatível K10 Power M320tv","img":"/imgs/peca_1776958209_69ea3b019ce44.jpeg","price":60.0,"priceStr":"R$ 60,00","brand":"LG","type":"Tela","search":"tela frontal touch display lcd compatível k10 power m320tv lg tela"},{"id":13,"name":"Tela K11+ Com Aro","img":"/imgs/peca_1776957404_69ea37dc55552.jpg","price":49.9,"priceStr":"R$ 49,90","brand":"LG","type":"Tela","search":"tela k11+ com aro lg tela"},{"id":14,"name":"Tela LG K10 Com Aro","img":"/imgs/peca_1776957204_69ea3714a61e1.jpg","price":49.0,"priceStr":"R$ 49,00","brand":"LG","type":"Tela","search":"tela lg k10 com aro lg tela"},{"id":15,"name":"Tela LG K50 ou Q60","img":"/imgs/peca_1776956957_69ea361de62bd.jpg","price":69.9,"priceStr":"R$ 69,90","brand":"LG","type":"Tela","search":"tela lg k50 ou q60 lg tela"},{"id":16,"name":"Bateria BL270","img":"/imgs/peca_1774378887_69c2df87bef21.jpg","price":60.0,"priceStr":"R$ 60,00","brand":"Motorola","type":"Bateria","search":"bateria bl270 motorola bateria"},{"id":17,"name":"Bateria BL270 Original Retirada","img":"/imgs/peca_1774377891_69c2dba308821.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Motorola","type":"Bateria","search":"bateria bl270 original retirada motorola bateria"},{"id":18,"name":"Bateria HE50 Original Retirada","img":"/imgs/peca_1774378577_69c2de5141e95.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Bateria","search":"bateria he50 original retirada motorola bateria"},{"id":19,"name":"Bateria JK50 Original Retirada","img":"/imgs/peca_1774376611_69c2d6a35ae19.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Bateria","search":"bateria jk50 original retirada motorola bateria"},{"id":20,"name":"Bateria KR40 Original Retirada","img":"/imgs/peca_1774376778_69c2d74a996dc.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Bateria","search":"bateria kr40 original retirada motorola bateria"},{"id":21,"name":"Bateria MC50 Original Retirada","img":"/imgs/peca_1774377024_69c2d84054b9c.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Bateria","search":"bateria mc50 original retirada motorola bateria"},{"id":22,"name":"Bateria ND50 Original Retirada","img":"/imgs/peca_1774379094_69c2e05669339.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Bateria","search":"bateria nd50 original retirada motorola bateria"},{"id":23,"name":"Bateria NH40 Original Retirada","img":"/imgs/peca_1774377685_69c2dad5e1d48.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Bateria","search":"bateria nh40 original retirada motorola bateria"},{"id":24,"name":"Bateria NH50 Original Retirada","img":"/imgs/peca_1774377810_69c2db524225a.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Bateria","search":"bateria nh50 original retirada motorola bateria"},{"id":25,"name":"Bateria PC50 Original Retirada","img":"/imgs/peca_1774378504_69c2de080e516.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Bateria","search":"bateria pc50 original retirada motorola bateria"},{"id":26,"name":"Bateria QB50 Original Retirada","img":"/imgs/peca_1774379219_69c2e0d3c8710.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Bateria","search":"bateria qb50 original retirada motorola bateria"},{"id":27,"name":"Bateria QF50 Original Retirada","img":"/imgs/peca_1774378688_69c2dec01e855.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Bateria","search":"bateria qf50 original retirada motorola bateria"},{"id":28,"name":"Sub Placa Action One Vision Retirada","img":"/imgs/peca_1774392921_69c3165951fab.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Motorola","type":"Conector","search":"sub placa action one vision retirada motorola conector"},{"id":29,"name":"Sub Placa Moto E13 Reirada","img":"/imgs/peca_1774392665_69c3155933439.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Motorola","type":"Conector","search":"sub placa moto e13 reirada motorola conector"},{"id":30,"name":"Sub Placa Moto E13 Retirada","img":"/imgs/peca_1774392666_69c3155a51a56.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Motorola","type":"Conector","search":"sub placa moto e13 retirada motorola conector"},{"id":31,"name":"Sub Placa Moto E22 Original Retirada","img":"/imgs/peca_1774391438_69c3108eb7253.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Motorola","type":"Conector","search":"sub placa moto e22 original retirada motorola conector"},{"id":32,"name":"Sub Placa Moto E4 Plus Retirada","img":"/imgs/peca_1774391856_69c312305058e.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Motorola","type":"Conector","search":"sub placa moto e4 plus retirada motorola conector"},{"id":33,"name":"Sub Placa Moto E4 Retirada","img":"/imgs/peca_1774391780_69c311e445ef0.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Motorola","type":"Conector","search":"sub placa moto e4 retirada motorola conector"},{"id":34,"name":"Sub Placa Moto E6 play Retirada","img":"/imgs/peca_1774392235_69c313abbe6b9.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Motorola","type":"Conector","search":"sub placa moto e6 play retirada motorola conector"},{"id":35,"name":"Sub Placa Moto E6 Plus Retirada","img":"/imgs/peca_1774392540_69c314dcce07f.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Motorola","type":"Conector","search":"sub placa moto e6 plus retirada motorola conector"},{"id":36,"name":"Sub Placa Moto E6s Retirada","img":"/imgs/peca_1774391651_69c31163cae9c.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Motorola","type":"Conector","search":"sub placa moto e6s retirada motorola conector"},{"id":37,"name":"Sub Placa Moto G10/20/30 Retirada","img":"/imgs/peca_1774390289_69c30c11535e3.jpg","price":35.0,"priceStr":"R$ 35,00","brand":"Motorola","type":"Conector","search":"sub placa moto g10/20/30 retirada motorola conector"},{"id":38,"name":"Sub Placa Moto G13/23 Reirada","img":"/imgs/peca_1774390528_69c30d001adaf.jpg","price":35.0,"priceStr":"R$ 35,00","brand":"Motorola","type":"Conector","search":"sub placa moto g13/23 reirada motorola conector"},{"id":39,"name":"Sub Placa Moto G22 Retirada","img":"/imgs/peca_1774390337_69c30c41bb0d2.jpg","price":35.0,"priceStr":"R$ 35,00","brand":"Motorola","type":"Conector","search":"sub placa moto g22 retirada motorola conector"},{"id":40,"name":"Sub Placa Moto G35 Original Retirada","img":"/imgs/peca_1774390747_69c30ddba020b.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Conector","search":"sub placa moto g35 original retirada motorola conector"},{"id":41,"name":"Sub Placa Moto G4 play Retirada","img":"/imgs/peca_1774388670_69c305be46f75.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Motorola","type":"Conector","search":"sub placa moto g4 play retirada motorola conector"},{"id":42,"name":"Sub Placa Moto g4 Play Retirada","img":"/imgs/peca_1774388671_69c305bf08f46.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Motorola","type":"Conector","search":"sub placa moto g4 play retirada motorola conector"},{"id":43,"name":"Sub Placa Moto g42 Retirada","img":"/imgs/peca_1774391055_69c30f0f747c4.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Motorola","type":"Conector","search":"sub placa moto g42 retirada motorola conector"},{"id":44,"name":"Sub Placa Moto G5 Retirada","img":"/imgs/peca_1774388784_69c30630b5183.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Motorola","type":"Conector","search":"sub placa moto g5 retirada motorola conector"},{"id":45,"name":"Sub Placa Moto G60 Retirada","img":"/imgs/peca_1774391291_69c30ffbe412d.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Motorola","type":"Conector","search":"sub placa moto g60 retirada motorola conector"},{"id":46,"name":"Sub Placa Moto G60 Retirada","img":"/imgs/peca_1774391293_69c30ffdc1028.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Motorola","type":"Conector","search":"sub placa moto g60 retirada motorola conector"},{"id":47,"name":"Sub Placa Moto G60 Retirada","img":"/imgs/peca_1774391294_69c30ffea999d.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Motorola","type":"Conector","search":"sub placa moto g60 retirada motorola conector"},{"id":48,"name":"Sub Placa Moto G60 Retirada","img":"/imgs/peca_1774391294_69c30ffede300.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Motorola","type":"Conector","search":"sub placa moto g60 retirada motorola conector"},{"id":49,"name":"Sub Placa Moto G6play/E5 Retirada","img":"/imgs/peca_1774391974_69c312a6cc3a9.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Motorola","type":"Conector","search":"sub placa moto g6play/e5 retirada motorola conector"},{"id":50,"name":"Sub Placa Moto G7 Play Retirada","img":"/imgs/peca_1774388406_69c304b626c81.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Motorola","type":"Conector","search":"sub placa moto g7 play retirada motorola conector"},{"id":51,"name":"Sub Placa Moto G72 Retirada","img":"/imgs/peca_1774391191_69c30f97db3ee.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Motorola","type":"Conector","search":"sub placa moto g72 retirada motorola conector"},{"id":52,"name":"Sub Placa Moto G8 Play Original Retirada","img":"/imgs/peca_1774389548_69c3092cef6c9.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Motorola","type":"Conector","search":"sub placa moto g8 play original retirada motorola conector"},{"id":53,"name":"Sub Placa Moto G8 Power Lite Retirada","img":"/imgs/peca_1774389861_69c30a659f7e1.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Motorola","type":"Conector","search":"sub placa moto g8 power lite retirada motorola conector"},{"id":54,"name":"Sub Placa Moto G8 Power Retirada","img":"/imgs/peca_1774389730_69c309e24b3e0.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Motorola","type":"Conector","search":"sub placa moto g8 power retirada motorola conector"},{"id":55,"name":"Sub Placa Moto G9 Play Retirada","img":"/imgs/peca_1774389956_69c30ac4a865b.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Motorola","type":"Conector","search":"sub placa moto g9 play retirada motorola conector"},{"id":56,"name":"Sub Placa Moto G9 Plus Retirada","img":"/imgs/peca_1774390068_69c30b34841ad.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Motorola","type":"Conector","search":"sub placa moto g9 plus retirada motorola conector"},{"id":57,"name":"Sub Placa Moto One Fusion Retirada","img":"/imgs/peca_1774392793_69c315d9177bc.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Motorola","type":"Conector","search":"sub placa moto one fusion retirada motorola conector"},{"id":58,"name":"Flex Moto G7 Play","img":"/imgs/peca_1775746496_69d7bdc07e78b.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Motorola","type":"Flex","search":"flex moto g7 play motorola flex"},{"id":59,"name":"Flex Sub Moto E4","img":"/imgs/peca_1775746667_69d7be6b5b712.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Motorola","type":"Flex","search":"flex sub moto e4 motorola flex"},{"id":60,"name":"Flex Sub Moto G6 play","img":"/imgs/peca_1775746176_69d7bc803bb03.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Motorola","type":"Flex","search":"flex sub moto g6 play motorola flex"},{"id":61,"name":"Flex Sub Moto One","img":"/imgs/peca_1775746048_69d7bc006389c.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Motorola","type":"Flex","search":"flex sub moto one motorola flex"},{"id":62,"name":"Sub Placa Motorola Moto G84 5g Xt2347 Original","img":"/imgs/peca_1779591588_6a1269a41b69a.jpeg","price":49.9,"priceStr":"R$ 49,90","brand":"Motorola","type":"Flex de Carga","search":"sub placa motorola moto g84 5g xt2347 original motorola flex de carga"},{"id":63,"name":"Tela Com Aro Moto G4 Play/Plus Retirada","img":"/imgs/peca_1774631717_69c6bb2556645.jpg","price":55.0,"priceStr":"R$ 55,00","brand":"Motorola","type":"Tela","search":"tela com aro moto g4 play/plus retirada motorola tela"},{"id":64,"name":"Tela Moto G56","img":"/imgs/peca_1775165906_69cee1d2b8d6b.jpg","price":70.0,"priceStr":"R$ 70,00","brand":"Motorola","type":"Tela","search":"tela moto g56 motorola tela"},{"id":65,"name":"Tela Moto G56","img":"/imgs/peca_1775166175_69cee2df7d06d.jpg","price":70.0,"priceStr":"R$ 70,00","brand":"Motorola","type":"Tela","search":"tela moto g56 motorola tela"},{"id":66,"name":"Tela Moto X Original","img":"/imgs/peca_1774703731_69c7d47340f8f.jpg","price":80.0,"priceStr":"R$ 80,00","brand":"Motorola","type":"Tela","search":"tela moto x original motorola tela"},{"id":67,"name":"Tela Oled Moto Z Play","img":"/imgs/peca_1774636093_69c6cc3db7af4.jpg","price":150.0,"priceStr":"R$ 150,00","brand":"Motorola","type":"Tela","search":"tela oled moto z play motorola tela"},{"id":68,"name":"Bateria EB-BA146ABY Original Retirada","img":"/imgs/peca_1774382732_69c2ee8ca91a2.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Bateria","search":"bateria eb-ba146aby original retirada samsung bateria"},{"id":69,"name":"Bateria EB-BA217ABY Original Retirada","img":"/imgs/peca_1774381868_69c2eb2c48cff.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Bateria","search":"bateria eb-ba217aby original retirada samsung bateria"},{"id":70,"name":"Bateria EB-BA505ABU Original Retirada","img":"/imgs/peca_1774382544_69c2edd0d9321.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Bateria","search":"bateria eb-ba505abu original retirada samsung bateria"},{"id":71,"name":"Bateria EB-BA751ABY Original Retirada","img":"/imgs/peca_1774383296_69c2f0c04f93d.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Bateria","search":"bateria eb-ba751aby original retirada samsung bateria"},{"id":72,"name":"Bateria EB-BG985ABY Original Retirada","img":"/imgs/peca_1774381649_69c2ea51540b7.jpg","price":80.0,"priceStr":"R$ 80,00","brand":"Samsung","type":"Bateria","search":"bateria eb-bg985aby original retirada samsung bateria"},{"id":73,"name":"Bateria SLC-50 Original Retirada","img":"/imgs/peca_1774379309_69c2e12d7887e.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Bateria","search":"bateria slc-50 original retirada samsung bateria"},{"id":74,"name":"Bateria WT-S-N28 Original Retirada","img":"/imgs/peca_1774382160_69c2ec50193f6.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Bateria","search":"bateria wt-s-n28 original retirada samsung bateria"},{"id":75,"name":"Sub Placa A01 Retirada","img":"/imgs/peca_1774377003_69c2d82b37675.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a01 retirada samsung conector de carga"},{"id":76,"name":"Sub Placa A03 Core Original Retirada","img":"/imgs/peca_1774384223_69c2f45fed32f.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a03 core original retirada samsung conector de carga"},{"id":77,"name":"Sub Placa A03s Retirada","img":"/imgs/peca_1774377884_69c2db9c2f31c.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a03s retirada samsung conector de carga"},{"id":78,"name":"Sub Placa A05 Original Retirada","img":"/imgs/peca_1774378751_69c2deffc4822.jpg","price":35.0,"priceStr":"R$ 35,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a05 original retirada samsung conector de carga"},{"id":79,"name":"Sub Placa A10s Original Retirada","img":"/imgs/peca_1774379209_69c2e0c93345d.jpg","price":20.0,"priceStr":"R$ 20,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a10s original retirada samsung conector de carga"},{"id":80,"name":"Sub Placa A11 Original Retirada","img":"/imgs/peca_1774381894_69c2eb4638ab8.jpg","price":25.0,"priceStr":"R$ 25,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a11 original retirada samsung conector de carga"},{"id":81,"name":"Sub Placa A12 Retirada","img":"/imgs/peca_1774382158_69c2ec4e068f9.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a12 retirada samsung conector de carga"},{"id":82,"name":"Sub Placa A20 Original Retirada","img":"/imgs/peca_1774383553_69c2f1c18f58f.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a20 original retirada samsung conector de carga"},{"id":83,"name":"Sub Placa A20s Original Retirada","img":"/imgs/peca_1774383684_69c2f24442a5d.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a20s original retirada samsung conector de carga"},{"id":84,"name":"Sub Placa A22 4G Original Retirada","img":"/imgs/peca_1774384034_69c2f3a29859a.jpg","price":45.0,"priceStr":"R$ 45,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a22 4g original retirada samsung conector de carga"},{"id":85,"name":"Sub Placa A30s Original Retirada","img":"/imgs/peca_1774384522_69c2f58a54b3b.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a30s original retirada samsung conector de carga"},{"id":86,"name":"Sub Placa A31 Retirada","img":"/imgs/peca_1774384755_69c2f673830e6.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a31 retirada samsung conector de carga"},{"id":87,"name":"Sub Placa A32 4G Original Retirada","img":"/imgs/peca_1774384949_69c2f73582ee7.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a32 4g original retirada samsung conector de carga"},{"id":88,"name":"Sub Placa A51 Original Retirada","img":"/imgs/peca_1774387793_69c3025160e64.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a51 original retirada samsung conector de carga"},{"id":89,"name":"Sub Placa A70 Retirada","img":"/imgs/peca_1774385601_69c2f9c1e08f4.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa a70 retirada samsung conector de carga"},{"id":90,"name":"Sub Placa Galaxy Galaxy Note 10 Plus Retirada","img":"/imgs/peca_1774385149_69c2f7fd95d03.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa galaxy galaxy note 10 plus retirada samsung conector de carga"},{"id":91,"name":"Sub Placa Galaxy S5 Original Retirada","img":"/imgs/peca_1774386557_69c2fd7d136e7.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa galaxy s5 original retirada samsung conector de carga"},{"id":92,"name":"Sub Placa Galaxy S6 Original Retirada","img":"/imgs/peca_1774386700_69c2fe0ceaf15.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa galaxy s6 original retirada samsung conector de carga"},{"id":93,"name":"Sub Placa M13/A13 4G Original Retirada","img":"/imgs/peca_1774382569_69c2ede9ae486.jpg","price":35.0,"priceStr":"R$ 35,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa m13/a13 4g original retirada samsung conector de carga"},{"id":94,"name":"Sub Placa M14/A14 4/5G","img":"/imgs/peca_1774383270_69c2f0a635c1b.jpg","price":35.0,"priceStr":"R$ 35,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa m14/a14 4/5g samsung conector de carga"},{"id":95,"name":"Sub placa M53 5G Original Retirada","img":"/imgs/peca_1774386836_69c2fe94a6aca.jpg","price":60.0,"priceStr":"R$ 60,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa m53 5g original retirada samsung conector de carga"},{"id":96,"name":"Sub Placa S20 FE Original Retirada","img":"/imgs/peca_1774378653_69c2de9d580bb.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa s20 fe original retirada samsung conector de carga"},{"id":97,"name":"Sub Placa S20 Mini Original Retirada","img":"/imgs/peca_1774386404_69c2fce4b6e69.jpg","price":50.0,"priceStr":"R$ 50,00","brand":"Samsung","type":"Conector De Carga","search":"sub placa s20 mini original retirada samsung conector de carga"},{"id":98,"name":"Sub PlacaA21s Original Retirada","img":"/imgs/peca_1774383890_69c2f3128263e.jpg","price":45.0,"priceStr":"R$ 45,00","brand":"Samsung","type":"Conector De Carga","search":"sub placaa21s original retirada samsung conector de carga"},{"id":99,"name":"Flex Carga G8 Play","img":"/imgs/peca_1775754293_69d7dc351bda2.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex carga g8 play samsung flex de carga"},{"id":100,"name":"Flex De Carga A10S","img":"/imgs/peca_1775742247_69d7ad273d3cd.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a10s samsung flex de carga"},{"id":101,"name":"Flex De Carga A15","img":"/imgs/peca_1775742051_69d7ac6367b50.jpg","price":35.0,"priceStr":"R$ 35,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a15 samsung flex de carga"},{"id":102,"name":"Flex de Carga A20","img":"/imgs/peca_1775746187_69d7bc8bb6377.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a20 samsung flex de carga"},{"id":103,"name":"Flex De Carga A20S","img":"/imgs/peca_1775745385_69d7b969c4dcb.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a20s samsung flex de carga"},{"id":104,"name":"Flex De Carga A21S","img":"/imgs/peca_1775747156_69d7c05439218.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a21s samsung flex de carga"},{"id":105,"name":"Flex De Carga A30S","img":"/imgs/peca_1775744593_69d7b651907b6.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a30s samsung flex de carga"},{"id":106,"name":"Flex De Carga A31","img":"/imgs/peca_1775744272_69d7b510a8559.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a31 samsung flex de carga"},{"id":107,"name":"Flex De Carga A32","img":"/imgs/peca_1775744459_69d7b5cbb0deb.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a32 samsung flex de carga"},{"id":108,"name":"flex De Carga A51","img":"/imgs/peca_1775747012_69d7bfc436241.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a51 samsung flex de carga"},{"id":109,"name":"Flex De Carga A52","img":"/imgs/peca_1775742168_69d7acd81f42a.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a52 samsung flex de carga"},{"id":110,"name":"Flex De Carga A70","img":"/imgs/peca_1775742322_69d7ad729c0c4.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a70 samsung flex de carga"},{"id":111,"name":"Flex De Carga A71","img":"/imgs/peca_1775745221_69d7b8c56767a.jpg","price":35.0,"priceStr":"R$ 35,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga a71 samsung flex de carga"},{"id":112,"name":"Flex De Carga G34","img":"/imgs/peca_1775747973_69d7c3859e510.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga g34 samsung flex de carga"},{"id":113,"name":"Flex De Carga G4 Play","img":"/imgs/peca_1775747607_69d7c2178c434.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga g4 play samsung flex de carga"},{"id":114,"name":"Flex De Carga G42","img":"/imgs/peca_1775747427_69d7c1631348d.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga g42 samsung flex de carga"},{"id":115,"name":"Flex De Carga G60","img":"/imgs/peca_1775747358_69d7c11e8324f.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga g60 samsung flex de carga"},{"id":116,"name":"Flex De Carga G7 Play","img":"/imgs/peca_1775747533_69d7c1cd2c8bf.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga g7 play samsung flex de carga"},{"id":117,"name":"Flex De Carga G9 Play","img":"/imgs/peca_1775747694_69d7c26edd759.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga g9 play samsung flex de carga"},{"id":118,"name":"Flex De Carga M10","img":"/imgs/peca_1775745880_69d7bb58397bb.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga m10 samsung flex de carga"},{"id":119,"name":"Flex De Carga M21S","img":"/imgs/peca_1775745485_69d7b9cd2bc11.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga m21s samsung flex de carga"},{"id":120,"name":"Flex De Carga M52","img":"/imgs/peca_1775744096_69d7b4608d6bc.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga m52 samsung flex de carga"},{"id":121,"name":"Flex de Carga Moto One Vision","img":"/imgs/peca_1775748123_69d7c41bb76ec.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga moto one vision samsung flex de carga"},{"id":122,"name":"Flex De Carga Redmi S2","img":"/imgs/peca_1775749596_69d7c9dc55eb7.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga redmi s2 samsung flex de carga"},{"id":123,"name":"Flex De Carga S10","img":"/imgs/peca_1775745754_69d7badaa8820.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga s10 samsung flex de carga"},{"id":124,"name":"Flex De Carga S20 FE","img":"/imgs/peca_1775744739_69d7b6e36fe13.jpg","price":45.0,"priceStr":"R$ 45,00","brand":"Samsung","type":"Flex de Carga","search":"flex de carga s20 fe samsung flex de carga"},{"id":125,"name":"Tela J5 Prime","img":"/imgs/peca_1774633235_69c6c1133319b.jpg","price":60.0,"priceStr":"R$ 60,00","brand":"Samsung","type":"Tela","search":"tela j5 prime samsung tela"},{"id":126,"name":"Tela J7","img":"/imgs/peca_1774541117_69c5593da291f.jpg","price":45.0,"priceStr":"R$ 45,00","brand":"Samsung","type":"Tela","search":"tela j7 samsung tela"},{"id":127,"name":"Tela J7 2017 Metal","img":"/imgs/peca_1774542131_69c55d33cf8e3.jpg","price":45.0,"priceStr":"R$ 45,00","brand":"Samsung","type":"Tela","search":"tela j7 2017 metal samsung tela"},{"id":128,"name":"Conjunto Leitor Ps2 9001","img":"/imgs/peca_1775164050_69ceda925fbf3.jpg","price":150.0,"priceStr":"R$ 150,00","brand":"Sony PlayStation","type":"Leitor","search":"conjunto leitor ps2 9001 sony playstation leitor"},{"id":129,"name":"Bateria BN37 Original Retirada","img":"/imgs/peca_1774383829_69c2f2d5b5335.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Xiaomi","type":"Bateria","search":"bateria bn37 original retirada xiaomi bateria"},{"id":130,"name":"Bateria BN46 Original Retirada","img":"/imgs/peca_1774383622_69c2f20687a8f.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Xiaomi","type":"Bateria","search":"bateria bn46 original retirada xiaomi bateria"},{"id":131,"name":"Bateria BN54 Original Retirada","img":"/imgs/peca_1774383450_69c2f15ac5f87.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Xiaomi","type":"Bateria","search":"bateria bn54 original retirada xiaomi bateria"},{"id":132,"name":"Bateria BN55 Original Retirada","img":"/imgs/peca_1774383770_69c2f29a8f16f.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Xiaomi","type":"Bateria","search":"bateria bn55 original retirada xiaomi bateria"},{"id":133,"name":"Bateria BN56 Original Retirada","img":"/imgs/peca_1774384092_69c2f3dc39b0f.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Xiaomi","type":"Bateria","search":"bateria bn56 original retirada xiaomi bateria"},{"id":134,"name":"Bateria BN57 Original Retirada","img":"/imgs/peca_1774383677_69c2f23dc7d48.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Xiaomi","type":"Bateria","search":"bateria bn57 original retirada xiaomi bateria"},{"id":135,"name":"Bateria BN59 Original Retirada","img":"/imgs/peca_1774383487_69c2f17f63045.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Xiaomi","type":"Bateria","search":"bateria bn59 original retirada xiaomi bateria"},{"id":136,"name":"Bateria BN5D Original Retirada","img":"/imgs/peca_1774384009_69c2f38997c95.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Xiaomi","type":"Bateria","search":"bateria bn5d original retirada xiaomi bateria"},{"id":137,"name":"Bateria BN5K Original Retirada","img":"/imgs/peca_1774383876_69c2f304a8332.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Xiaomi","type":"Bateria","search":"bateria bn5k original retirada xiaomi bateria"},{"id":138,"name":"Bateria BN5Q Original Retirada","img":"/imgs/peca_1774383927_69c2f33751332.jpg","price":40.0,"priceStr":"R$ 40,00","brand":"Xiaomi","type":"Bateria","search":"bateria bn5q original retirada xiaomi bateria"},{"id":139,"name":"Flex De Carga Note 10 Plus","img":"/imgs/peca_1775751967_69d7d31ff281e.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Xiaomi","type":"Flex de Carga","search":"flex de carga note 10 plus xiaomi flex de carga"},{"id":140,"name":"Flex De Carga Note 10S","img":"/imgs/peca_1775749093_69d7c7e56c3a5.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Xiaomi","type":"Flex de Carga","search":"flex de carga note 10s xiaomi flex de carga"},{"id":141,"name":"Flex De Carga Note 11","img":"/imgs/peca_1775752040_69d7d36874901.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Xiaomi","type":"Flex de Carga","search":"flex de carga note 11 xiaomi flex de carga"},{"id":142,"name":"Flex De Carga Note 8","img":"/imgs/peca_1775754118_69d7db8605a1d.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Xiaomi","type":"Flex de Carga","search":"flex de carga note 8 xiaomi flex de carga"},{"id":143,"name":"Flex De Carga Poço X3","img":"/imgs/peca_1775749787_69d7ca9bdab15.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Xiaomi","type":"Flex de Carga","search":"flex de carga poço x3 xiaomi flex de carga"},{"id":144,"name":"Flex De Carga Redmi Note 12S","img":"/imgs/peca_1775751873_69d7d2c1bc875.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Xiaomi","type":"Flex de Carga","search":"flex de carga redmi note 12s xiaomi flex de carga"},{"id":145,"name":"Flex De Carga Redmi Note 9 Pro/S","img":"/imgs/peca_1775750641_69d7cdf14cb2d.jpg","price":30.0,"priceStr":"R$ 30,00","brand":"Xiaomi","type":"Flex de Carga","search":"flex de carga redmi note 9 pro/s xiaomi flex de carga"},{"id":146,"name":"FRONTAL TELA DISPLAY XIAOMI MI 8 LITE M1808D2TG","img":"/imgs/peca_1776957941_69ea39f51cdf8.jpeg","price":60.0,"priceStr":"R$ 60,00","brand":"Xiaomi","type":"Tela","search":"frontal tela display xiaomi mi 8 lite m1808d2tg xiaomi tela"},{"id":147,"name":"Frontal Tela Display Xiaomi Redmi 8 / Redmi 8A","img":"/imgs/peca_1776958074_69ea3a7ab2c4f.jpeg","price":60.0,"priceStr":"R$ 60,00","brand":"Xiaomi","type":"Tela","search":"frontal tela display xiaomi redmi 8 / redmi 8a xiaomi tela"},{"id":148,"name":"Tela Display Xiaomi Redmi 8 / Redmi 8A","img":"/imgs/peca_1776957554_69ea3872da2bd.jpeg","price":60.0,"priceStr":"R$ 60,00","brand":"Xiaomi","type":"Tela","search":"tela display xiaomi redmi 8 / redmi 8a xiaomi tela"},{"id":149,"name":"Tela Redmi Note 6","img":"/imgs/peca_1776958478_69ea3c0e1d473.jpg","price":49.9,"priceStr":"R$ 49,90","brand":"Xiaomi","type":"Tela","search":"tela redmi note 6 xiaomi tela"},{"id":150,"name":"Tela Redmi Note 6","img":"/imgs/peca_1776958479_69ea3c0f3086f.jpg","price":49.9,"priceStr":"R$ 49,90","brand":"Xiaomi","type":"Tela","search":"tela redmi note 6 xiaomi tela"}];
+
+function renderPecas(filter='', term='') {
+  const catalog = document.getElementById('pecasCatalog');
+  const noRes = document.getElementById('no-results');
+
+  let filtered = PRODUCTS;
+  if (filter) filtered = filtered.filter(p => p.brand === filter);
+  if (term) filtered = filtered.filter(p => p.search.includes(term.toLowerCase()));
+
+  if (!filtered.length) {
+    catalog.innerHTML = '';
+    noRes.style.display = 'block';
+    return;
+  }
+  noRes.style.display = 'none';
+
+  // Agrupar por brand → type
+  const byBrand = {};
+  filtered.forEach(p => {
+    if (!byBrand[p.brand]) byBrand[p.brand] = {};
+    if (!byBrand[p.brand][p.type]) byBrand[p.brand][p.type] = [];
+    byBrand[p.brand][p.type].push(p);
+  });
+
+  const brandLogos = {
+    'Apple': `<svg viewBox="0 0 814 1000" width="20" height="24" fill="#e2e8f0"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.7 0 663 0 541.8c0-207.8 136.4-318 270.7-318 67.2 0 123.1 44.2 165.1 44.2 40.1 0 102.7-47.1 176.1-47.1 28.5 0 130.9 2.6 198.3 99zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>`,
+    'Samsung': `<svg viewBox="0 0 300 60" width="64" height="22" fill="#1428A0"><path d="M26.5 8.2C15.1 8.2 5.8 17.5 5.8 28.9s9.3 20.7 20.7 20.7 20.7-9.3 20.7-20.7S37.9 8.2 26.5 8.2zm0 36c-8.5 0-15.3-6.8-15.3-15.3S18 13.6 26.5 13.6s15.3 6.8 15.3 15.3-6.8 15.3-15.3 15.3zm25.7-34.7v27.4l-14.8-27.4H31v36.9h5.3V18.9l15.4 27.5h6v-36.9h-5.5zm32.4 14.9c-4.2-.9-5.9-1.7-5.9-3.5 0-1.9 1.8-3.1 4.6-3.1 3 0 5.5 1.2 7.8 3.6l3.4-3.5c-2.8-3.1-6.5-4.9-11.1-4.9-6.1 0-10.4 3.4-10.4 8.3 0 4.6 2.8 6.8 9.1 8.1 4.7 1 6.6 2 6.6 4.1 0 2.1-1.9 3.4-5.1 3.4-3.6 0-6.5-1.5-8.9-4.3l-3.5 3.6c3 3.6 7.1 5.5 12.3 5.5 6.7 0 11-3.4 11-8.7-.1-4.6-2.9-7.1-9.9-8.6zm23.7-14.9h-5.6v36.9h5.6V9.5zm26.9 0l-8.4 27.9-8.3-27.9h-5.9l10.7 36.9h7l10.7-36.9h-5.8zm35.8 0h-22.3v36.9h22.3v-5h-16.8V30h15.2v-4.9h-15.2V14.5H171v-5zm28.9 0v27.4L185 9.5h-6.4v36.9h5.3V18.9l15.4 27.5h6V9.5h-5.5zm28.1 13.2c-4.2-.9-5.9-1.7-5.9-3.5 0-1.9 1.8-3.1 4.6-3.1 3 0 5.5 1.2 7.8 3.6l3.4-3.5c-2.8-3.1-6.5-4.9-11.1-4.9-6.1 0-10.4 3.4-10.4 8.3 0 4.6 2.8 6.8 9.1 8.1 4.7 1 6.6 2 6.6 4.1 0 2.1-1.9 3.4-5.1 3.4-3.6 0-6.5-1.5-8.9-4.3l-3.5 3.6c3 3.6 7.1 5.5 12.3 5.5 6.7 0 11-3.4 11-8.7-.1-4.6-2.9-7.1-9.9-8.6z"/></svg>`,
+    'Motorola': `<svg viewBox="0 0 100 100" width="26" height="26"><circle cx="50" cy="50" r="50" fill="#2C2C2C"/><path fill="white" d="M50 15c-19.3 0-35 15.7-35 35s15.7 35 35 35 35-15.7 35-35-15.7-35-35-35zm0 6c5.4 0 10.5 1.5 14.8 4.2L50 38.3 35.2 25.2C39.5 22.5 44.6 21 50 21zm-20.6 8.6L43.2 43c-2.2 2.9-3.5 6.5-3.5 10.4v.6H22.1c.4-12.8 6.7-24 16.3-30.4zM22.1 59h17.6c.6 3.8 2.2 7.3 4.5 10.1L30.5 82.3C25.2 76.4 22 68.6 22 60c0-.3.1-.7.1-1zm12.4 25.8l13.3-13.1c1.3.4 2.7.6 4.2.6s2.9-.2 4.2-.6l13.3 13.1C65.6 87.2 58.1 89 50 89s-15.6-1.8-21.5-4.2zm30.6-2.5L51.3 69.1c2.3-2.8 3.9-6.3 4.5-10.1H73.9c0 .3.1.7.1 1 0 8.6-3.2 16.4-8.9 22.3zm8.4-28.3H56.1v-.6c0-3.9-1.3-7.5-3.5-10.4L66.4 29.6c9.6 6.4 15.9 17.6 16.3 30.4H73.5z"/></svg>`,
+    'Xiaomi': `<svg viewBox="0 0 100 60" width="52" height="28"><rect width="100" height="60" rx="8" fill="#FF6900"/><text x="50" y="42" font-family="Arial Black,sans-serif" font-size="36" font-weight="900" fill="white" text-anchor="middle">mi</text></svg>`,
+    'Asus': `<svg viewBox="0 0 200 60" width="64" height="28"><path fill="#00599A" d="M22.4 10h155.2c6.8 0 12.4 5.6 12.4 12.4v15.2c0 6.8-5.6 12.4-12.4 12.4H22.4C15.6 50 10 44.4 10 37.6V22.4C10 15.6 15.6 10 22.4 10z"/><text x="100" y="38" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="white" text-anchor="middle" letter-spacing="3">ASUS</text></svg>`,
+    'LG': `<svg viewBox="0 0 100 100" width="26" height="26"><circle cx="50" cy="50" r="48" fill="#A50034" stroke="white" stroke-width="2"/><text x="30" y="62" font-family="Arial Black,sans-serif" font-size="38" font-weight="900" fill="white">L</text><text x="52" y="62" font-family="Arial Black,sans-serif" font-size="38" font-weight="900" fill="white">G</text><line x1="52" y1="36" x2="52" y2="62" stroke="white" stroke-width="4"/><line x1="52" y1="62" x2="72" y2="62" stroke="white" stroke-width="4"/></svg>`,
+    'Sony PlayStation': `<svg viewBox="0 0 100 100" width="26" height="26" fill="#003087"><path d="M38.4 73.1V28.5l10.2 3.2v35.8l9.9 3.1V25.9L38.1 21C31.3 18.8 26 21.9 26 29.3v35.1l12.4 8.7zM61.8 64.3l16.1-5.3c1.8-.6 2.1-1.4.6-1.9l-16.7-5.3-12.5 4.1 16.8 5.4-4.3 1.4V65l-16.8-5.4v3.4l16.8 8zM74 43.6V31.8c0-7.4-5.1-10.9-11.4-7.8v11.3l-12.5-4v-7L74 31.7z"/></svg>`,
+  };
+
+  let html = '';
+  Object.keys(byBrand).sort().forEach(brand => {
+    const types = byBrand[brand];
+    const total = Object.values(types).flat().length;
+    html += `<div class="brand-section">
+      <div class="brand-header">
+        <span class="brand-emoji">${brandLogos[brand] || '<span style="font-size:18px">📦</span>'}</span>
+        <span class="brand-name">${brand}</span>
+        <span class="brand-count">${total} peças</span>
+      </div>`;
+    Object.keys(types).sort().forEach(type => {
+      html += `<div class="type-label">${type}</div><div class="products-row">`;
+      types[type].forEach(p => {
+        html += `<div class="product-card">
+          <div onclick="openPeca(${p.id})" style="cursor:pointer">
+          ${p.img ? `<img src="${p.img}" alt="${p.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="no-img" style="display:none">📦</div>` : '<div class="no-img">📦</div>'}
+          <div class="product-info">
+            <div class="product-name">${p.name}</div>
+            <div class="product-price">R$ ${p.price.toFixed(2).replace('.',',')}</div>
+          </div>
+          </div>
+          <div class="product-actions" style="padding:0 8px 10px">
+            <button class="btn-cart" id="cart-${p.id}" onclick="addToCart(${p.id},event)">🛒 Carrinho</button>
+            <button class="btn-buy-card" onclick="buyNow(${p.id},event)">⚡ Comprar</button>
+          </div>
+          ${isStaff ? `
+            <button class="btn-archive" title="Arquivar" style="right:6px" onclick="event.stopPropagation();archiveProduct('peca',${p.id},'${p.name.replace(/'/g,"\\'")}')">🗑️</button>
+            <button class="btn-archive" title="Editar" style="right:40px;background:rgba(15,15,25,0.75)" onclick="event.stopPropagation();openEditPecaModal(${p.id})">✏️</button>
+          ` : ''}
+        </div>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+  catalog.innerHTML = html;
+}
+
+// Filtros de marca
+const brands = [...new Set(PRODUCTS.map(p => p.brand))].sort();
+const bf = document.getElementById('brandFilters');
+brands.forEach(b => {
+  const btn = document.createElement('button');
+  btn.className = 'filter-btn';
+  btn.textContent = b;
+  btn.onclick = () => filterBrand(b, btn);
+  bf.appendChild(btn);
+});
+document.getElementById('statPecas').textContent = PRODUCTS.length;
+
+let activeBrand = '';
+function filterBrand(brand, btn) {
+  activeBrand = brand;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPecas(brand, document.getElementById('searchInput').value);
+}
+
+document.getElementById('searchInput').addEventListener('input', function() {
+  renderPecas(activeBrand, this.value);
+});
+
+renderPecas();
+
+// ===== DETALHE PEÇA =====
+function openPeca(id) {
+  const p = PRODUCTS[id];
+  document.getElementById('modalTitle').textContent = p.name;
+  document.getElementById('modalBody').innerHTML = `
+    ${p.img ? `<img src="${p.img}" class="detail-img" referrerpolicy="no-referrer" onerror="this.style.display='none'">` : '<div style="text-align:center;font-size:80px;margin:20px 0">📦</div>'}
+    <div class="detail-name">${p.name}</div>
+    <div style="color:#64748b;font-size:13px;margin-bottom:8px">${p.brand} · ${p.type}</div>
+    <div class="detail-price">R$ ${p.price.toFixed(2).replace('.',',')}</div>
+    <p style="font-size:13px;color:#64748b;margin-bottom:16px">
+      Interessado? Chama no WhatsApp ou solicite pelo chat da loja.
+    </p>
+  `;
+  const msg = encodeURIComponent(`Olá! Vi o produto "${p.name}" (R$ ${p.priceStr}) no site e quero saber mais.`);
+  document.getElementById('modalFooter').innerHTML = `
+    <div class="detail-row">
+      <a class="btn-wpp" href="https://wa.me/${WPP}?text=${msg}" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+        WhatsApp
+      </a>
+      <button class="btn-buy" onclick="closeModal();openCheckoutPeca(${id})">🛒 Comprar</button>
+    </div>
+  `;
+  openModal();
+}
+
+// ===== CHECKOUT PEÇA =====
+function openCheckoutPeca(id) {
+  const p = PRODUCTS[id];
+  document.getElementById('modalTitle').textContent = '🛒 ' + p.name;
+  showCheckoutStep1(p, 'peca');
+  openModal();
+}
+
+function showCheckoutStep1(product, tipo) {
+  // Recuperar dados salvos do localStorage
+  const savedPhone = localStorage.getItem('bm_phone') || '';
+  const savedEmail = localStorage.getItem('bm_email') || currentUser?.email || '';
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="checkout-steps">
+      <div class="step active">1 Contato</div>
+      <div class="step">2 Pagamento</div>
+      <div class="step">3 Entrega</div>
+    </div>
+    <p style="font-size:13px;color:#64748b;margin-bottom:14px">Para finalizar sua compra, informe seu contato:</p>
+    <div class="contact-form">
+      <div style="position:relative">
+        <input type="tel" id="custPhone" placeholder="WhatsApp (ex: 61999999999)" value="${savedPhone}"
+          style="width:100%;padding:11px 14px;border:1.5px solid #2d2d4a;border-radius:10px;font-size:15px;outline:none;background:#16162a;color:#f1f5f9" oninput="this.style.borderColor='#7c3aed'">
+      </div>
+      <div style="position:relative;margin-top:10px">
+        <input type="email" id="custEmail" placeholder="Seu e-mail" value="${savedEmail}"
+          style="width:100%;padding:11px 14px;border:1.5px solid #2d2d4a;border-radius:10px;font-size:15px;outline:none;background:#16162a;color:#f1f5f9" oninput="this.style.borderColor='#7c3aed'">
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <p style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Como quer receber?</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label id="opt-entrega" onclick="selectEntrega('entrega')" style="cursor:pointer;border:2px solid #7c3aed;border-radius:10px;padding:12px 10px;text-align:center;background:rgba(124,58,237,0.15)">
+          <div style="font-size:22px">🛵</div>
+          <div style="font-size:13px;font-weight:700;color:#a78bfa;margin-top:4px">Entrega</div>
+          <div style="font-size:10px;color:#64748b">Combinamos pelo WhatsApp</div>
+        </label>
+        <label id="opt-retirada" onclick="selectEntrega('retirada')" style="cursor:pointer;border:2px solid #2d2d4a;border-radius:10px;padding:12px 10px;text-align:center;background:#1a1a2e">
+          <div style="font-size:22px">🏪</div>
+          <div style="font-size:13px;font-weight:700;color:#475569;margin-top:4px">Retirada</div>
+          <div style="font-size:10px;color:#64748b">Planaltina DF</div>
+        </label>
+      </div>
+    </div>
+  `;
+
+  window._tipoEntrega = 'entrega';
+
+  document.getElementById('modalFooter').innerHTML = `
+    <button class="btn-buy" style="width:100%;margin-bottom:8px" onclick="proceedToPayment('${product.id}','${tipo}')">
+      Continuar para pagamento →
+    </button>
+    <button onclick="maisInfoProduto('${product.id}','${product.name || product.title}')" style="width:100%;background:none;border:none;color:#25d366;font-size:13px;font-weight:600;cursor:pointer;padding:6px;display:flex;align-items:center;justify-content:center;gap:5px">
+      💬 Mais informações sobre o produto
+    </button>
+  `;
+}
+
+function selectEntrega(tipo) {
+  window._tipoEntrega = tipo;
+  const e = document.getElementById('opt-entrega');
+  const r = document.getElementById('opt-retirada');
+  if (tipo === 'entrega') {
+    e.style.border = '2px solid #7c3aed'; e.style.background = 'rgba(124,58,237,0.15)';
+    e.querySelector('div:nth-child(2)').style.color = '#a78bfa';
+    r.style.border = '2px solid #e2e8f0'; r.style.background = '#fff';
+    r.querySelector('div:nth-child(2)').style.color = '#475569';
+  } else {
+    r.style.border = '2px solid #7c3aed'; r.style.background = 'rgba(124,58,237,0.15)';
+    r.querySelector('div:nth-child(2)').style.color = '#a78bfa';
+    e.style.border = '2px solid #e2e8f0'; e.style.background = '#fff';
+    e.querySelector('div:nth-child(2)').style.color = '#475569';
+  }
+}
+
+function desistirCompra() {
+  closeModal();
+  const msg = encodeURIComponent('Olá! Estava fazendo um pedido no site mas desisti. Quero entender melhor antes de comprar.');
+  window.open('https://wa.me/' + WPP + '?text=' + msg, '_blank');
+}
+
+function maisInfoProduto(prodId, prodName) {
+  closeModal();
+  const nome = prodName || prodId;
+  const msg = encodeURIComponent('Olá! Tenho interesse no produto *' + nome + '* que vi no site. Pode me dar mais informações?');
+  window.open('https://wa.me/' + WPP + '?text=' + msg, '_blank');
+}
+
+function proceedToPayment(prodId, tipo) {
+  const phone = document.getElementById('custPhone').value.trim();
+  const email = document.getElementById('custEmail').value.trim();
+  if (!phone || !email) { showToast('Preencha WhatsApp e e-mail!'); return; }
+  // Salvar para próxima compra
+  localStorage.setItem('bm_phone', phone);
+  localStorage.setItem('bm_email', email);
+
+  const p = tipo === 'peca'
+    ? (PRODUCTS[prodId] || PRODUCTS[parseInt(prodId)])
+    : tipo === 'geek'
+      ? (geekProducts.find(d=>d.id===prodId))
+      : (digitalProducts.find(d=>d.id===prodId) || digitalProducts.find(d=>String(d.id)===String(prodId)));
+  if (!p) { showToast('Erro ao localizar produto. Tente novamente.'); return; }
+
+  // Salvar pedido no Firestore
+  const tipoEntrega = window._tipoEntrega || 'entrega';
+  const order = {
+    productId: prodId,
+    productName: p.name || p.title,
+    productType: tipo,
+    price: p.price,
+    custPhone: phone,
+    custEmail: email,
+    tipoEntrega: tipoEntrega,
+    userId: currentUser?.uid || null,
+    status: 'aguardando_pagamento',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  db.collection('orders').add(order).then(ref => {
+    // Notificar admin via webhook (iFood-style)
+    const entregaIcon = tipoEntrega === 'retirada' ? '🏪 Retirada' : '🛵 Entrega';
+    fetch('/api/notify-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId: ref.id,
+        productName: p.name || p.title,
+        price: p.price,
+        custPhone: phone,
+        custEmail: email,
+        tipoEntrega: entregaIcon
+      })
+    }).catch(() => {}); // Silencioso — não bloqueia o checkout
+
+    createMPPreference(ref.id, p, phone, email);
+  });
+}
+
+// ===== Geração de payload Pix EMV (padrão BACEN) =====
+// Checkout via Mercado Pago direto
+async function createMPPreference(orderId, product, phone, email) {
+  const name = product.name || product.title;
+  const price = typeof product.price === 'number' ? product.price : parseFloat(String(product.price).replace(',','.').replace(/[^0-9.]/g,''));
+  const priceStr = price.toFixed(2).replace('.',',');
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="checkout-steps">
+      <div class="step done">1 Contato</div>
+      <div class="step active">2 Pagamento</div>
+      <div class="step">3 Entrega</div>
+    </div>
+    <div style="text-align:center;padding:30px 0">
+      <div style="font-size:40px;margin-bottom:12px">⏳</div>
+      <p style="font-weight:600">Gerando QR Code Pix...</p>
+    </div>
+  `;
+  document.getElementById('modalFooter').innerHTML = '';
+
+  // Tentar gerar QR Code via edge function
+  let qrGerado = false;
+  try {
+    const res = await fetch('/api/pix', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: price, description: name.substring(0,255), email: email || 'cliente@bancadamatriz.com.br' })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.qr_code_base64 && data.qr_code) {
+        qrGerado = true;
+        const pixKey = '61984611071';
+        const comprovMsg = encodeURIComponent("Olá! Acabei de pagar R$ " + priceStr + " via Pix.\nProduto: " + name + "\n\n[Comprovante em anexo]\n\nMeu WhatsApp: " + phone);
+        const qrCodeSafe = data.qr_code.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        document.getElementById('modalBody').innerHTML = `
+          <div class="checkout-steps">
+            <div class="step done">1 Contato</div>
+            <div class="step active">2 Pagamento</div>
+            <div class="step">3 Entrega</div>
+          </div>
+          <div style="text-align:center;padding:8px 0 0">
+            <p style="font-weight:700;font-size:15px;margin-bottom:2px">${name}</p>
+            <p style="font-size:26px;font-weight:800;color:#34d399;margin-bottom:6px">R$ ${priceStr}</p>
+
+            <p style="font-size:11px;color:#94a3b8;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">📲 Escaneie o QR Code com seu banco</p>
+            <div style="display:inline-block;background:white;padding:10px;border-radius:14px;border:3px solid #7c3aed;margin-bottom:8px;box-shadow:0 0 18px rgba(124,58,237,0.3)">
+              <img src="data:image/png;base64,${data.qr_code_base64}" width="190" height="190" alt="QR Code Pix">
+            </div>
+
+            <p style="font-size:11px;color:#94a3b8;margin:8px 0 4px;font-weight:600">— ou Pix Copia e Cola —</p>
+            <div style="background:#16162a;border-radius:10px;padding:10px 12px;margin-bottom:8px;text-align:left">
+              <p style="font-size:9px;color:#64748b;margin-bottom:3px;font-weight:700;text-transform:uppercase">Código Pix</p>
+              <p style="font-size:10px;word-break:break-all;color:#a78bfa;font-family:monospace;margin:0;line-height:1.4">${data.qr_code.substring(0,80)}...</p>
+            </div>
+            <button onclick="navigator.clipboard.writeText('${qrCodeSafe}').then(()=>showToast('Código copiado! ✅'))"
+              style="width:100%;background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:white;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px">
+              📋 Copiar código Pix
+            </button>
+
+            <div style="background:#1a1a2e;border:1px solid #2d2d4a;border-radius:12px;padding:12px;margin-bottom:4px;text-align:left">
+              <p style="font-size:10px;color:#64748b;margin-bottom:4px;font-weight:700;text-transform:uppercase">— ou Pix pela chave celular —</p>
+              <p style="font-size:20px;font-weight:800;color:#34d399;letter-spacing:1px;margin:0">${pixKey}</p>
+              <p style="font-size:11px;color:#64748b;margin-top:4px">Gustavo Rodrigues · Planaltina DF</p>
+            </div>
+            <p style="font-size:10px;color:#64748b;margin-top:6px">🔒 QR Code gerado pelo Mercado Pago · Expira em 30 min</p>
+          </div>
+        `;
+        document.getElementById('modalFooter').innerHTML = `
+          <a href="https://wa.me/${WPP}?text=${comprovMsg}" target="_blank"
+            style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#25d366,#1ebe5d);color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:8px">
+            📤 Enviar comprovante no Atendimento
+          </a>
+          <p style="font-size:11px;color:#64748b;text-align:center">Após pagar, envie o comprovante pelo botão acima para confirmação rápida.</p>
+        `;
+      }
+    }
+  } catch(e) {
+    console.log('Edge function indisponível, usando Pix manual');
+  }
+
+  // Fallback: Pix manual com chave
+  if (!qrGerado) {
+    const pixKey = '61984611071';
+    const comprovMsg = encodeURIComponent("Olá! Acabei de pagar R$ " + priceStr + " via Pix.\nProduto: " + name + "\n\n[Comprovante em anexo]\n\nMeu WhatsApp: " + phone);
+    document.getElementById('modalBody').innerHTML = `
+      <div class="checkout-steps">
+        <div class="step done">1 Contato</div>
+        <div class="step active">2 Pagamento</div>
+        <div class="step">3 Entrega</div>
+      </div>
+      <div style="text-align:center;padding:8px 0 0">
+        <p style="font-weight:700;font-size:15px;margin-bottom:2px">${name}</p>
+        <p style="font-size:26px;font-weight:800;color:#34d399;margin-bottom:14px">R$ ${priceStr}</p>
+
+        <p style="font-size:11px;color:#94a3b8;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Chave Pix — Celular</p>
+        <div style="background:#1a1a2e;border:2px solid #10b981;border-radius:14px;padding:16px;margin-bottom:10px;text-align:center">
+          <p style="font-size:26px;font-weight:800;color:#34d399;letter-spacing:2px;margin:0">${pixKey}</p>
+          <p style="font-size:12px;color:#64748b;margin-top:6px">Gustavo Rodrigues · Planaltina DF</p>
+        </div>
+        <button onclick="navigator.clipboard.writeText('${pixKey}').then(()=>showToast('Chave copiada! ✅'))"
+          style="width:100%;background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:white;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:6px">
+          📋 Copiar chave Pix
+        </button>
+        <p style="font-size:11px;color:#64748b;margin-top:4px">Abra seu banco, vá em Pix → Pagar → Chave e cole o número acima.</p>
+      </div>
+    `;
+    document.getElementById('modalFooter').innerHTML = `
+      <a href="https://wa.me/${WPP}?text=${comprovMsg}" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#25d366,#1ebe5d);color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:8px">
+        📤 Enviar comprovante no Atendimento
+      </a>
+      <p style="font-size:11px;color:#64748b;text-align:center">Após pagar, envie o comprovante pelo botão acima para confirmação rápida.</p>
+    `;
+  }
+}
+
+
+// ===== DIGITAL PRODUCTS =====
+let digitalProducts = [];
+
+async function loadDigital() {
+  const snap = await db.collection('digital_products').orderBy('createdAt','desc').get();
+  digitalProducts = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  document.getElementById('statDigital').textContent = digitalProducts.length;
+  renderDigital();
+}
+
+function renderDigital() {
+  const grid = document.getElementById('digitalGrid');
+  if (!digitalProducts.length) {
+    grid.innerHTML = `
+      <div style="text-align:center;padding:60px 20px;color:#64748b;grid-column:1/-1">
+        <div style="font-size:48px;margin-bottom:12px">📚</div>
+        <p>Nenhum produto digital ainda.</p>
+      </div>`;
+    return;
+  }
+  const catColors = {
+    'Curso':'rgba(124,58,237,0.2)','Apostila':'rgba(59,130,246,0.2)','Gibi/HQ':'rgba(245,158,11,0.2)','Livro':'rgba(16,185,129,0.2)','Outro':'rgba(100,116,139,0.2)'
+  };
+  grid.innerHTML = digitalProducts.map(p => `
+    <div class="digital-card" style="position:relative">
+      ${isStaff ? `
+        <button class="btn-archive" title="Arquivar" style="right:6px" onclick="archiveProduct('digital','${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">🗑️</button>
+        <button class="btn-archive" title="Editar" style="right:40px;background:rgba(15,15,25,0.75)" onclick="openEditDigitalModal('${p.id}')">✏️</button>
+      ` : ''}
+      <div class="digital-cover">
+        ${p.imgUrl ? `<img src="${p.imgUrl}" alt="${p.title}">` : `<span style="font-size:60px">${p.category==='Curso'?'🎓':p.category==='Apostila'?'📄':p.category==='Gibi/HQ'?'🦸':'📖'}</span>`}
+      </div>
+      <div class="digital-body">
+        <span class="digital-tag" style="background:${catColors[p.category]||'#f1f5f9'}">${p.category}</span>
+        <div class="digital-title">${p.title}</div>
+        <div class="digital-desc">${p.description||''}</div>
+        <div class="digital-footer">
+          <div class="digital-price">R$ ${Number(p.price).toFixed(2).replace('.',',')}</div>
+          <button class="btn-buy" onclick="openCheckoutDigital('${p.id}')">Comprar</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function saveDigital() {
+  if (!currentUser) { showToast('Faça login primeiro!'); return; }
+  const title = document.getElementById('dTitle').value.trim();
+  const desc = document.getElementById('dDesc').value.trim();
+  const cat = document.getElementById('dCat').value;
+  const price = parseFloat(document.getElementById('dPrice').value);
+  const url = document.getElementById('dUrl').value.trim();
+  const img = document.getElementById('dImg').value.trim();
+  if (!title||!price||!url) { showToast('Preencha título, preço e URL do PDF!'); return; }
+  await db.collection('digital_products').add({
+    title, description:desc, category:cat, price, pdfUrl:url, imgUrl:img||null,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    createdBy: currentUser.email
+  });
+  showToast('✅ Produto salvo!');
+  document.getElementById('dTitle').value=''; document.getElementById('dDesc').value='';
+  document.getElementById('dPrice').value=''; document.getElementById('dUrl').value='';
+  document.getElementById('dImg').value='';
+  loadDigital();
+}
+
+// ===== CHECKOUT DIGITAL =====
+function openCheckoutDigital(id) {
+  const p = digitalProducts.find(d=>d.id===id) || digitalProducts.find(d=>String(d.id)===String(id));
+  if (!p) { showToast('Produto não encontrado.'); return; }
+  document.getElementById('modalTitle').textContent = '🛒 ' + p.title;
+  showCheckoutStep1(p, 'digital');
+  openModal();
+}
+
+// ===== ADMIN =====
+async function loadAdminData() {
+  // Colaboradores
+  const snap = await db.collection('team').get();
+  let html = `<div class="collab-item">
+    <div class="collab-avatar">G</div>
+    <div class="collab-info">
+      <div class="collab-name">Guga</div>
+      <div class="collab-email">djgugathebest@gmail.com</div>
+    </div>
+    <span class="collab-role role-admin">Dono</span>
+  </div>`;
+  snap.forEach(doc => {
+    const d = doc.data();
+    html += `<div class="collab-item">
+      <div class="collab-avatar">${d.name?.[0]?.toUpperCase()||'?'}</div>
+      <div class="collab-info">
+        <div class="collab-name">${d.name||doc.id}</div>
+        <div class="collab-email">${doc.id}</div>
+      </div>
+      <span class="collab-role ${d.role==='admin'?'role-admin':'role-collab'}">${d.role}</span>
+      ${userRole==='owner'?`<button class="btn-remove" onclick="removeCollab('${doc.id}')">🗑️</button>`:''}
+    </div>`;
+  });
+  document.getElementById('collabList').innerHTML = html;
+
+  // Pedidos
+  const orders = await db.collection('orders').orderBy('createdAt','desc').limit(10).get();
+  document.getElementById('statOrders').textContent = orders.size;
+  if (orders.empty) {
+    document.getElementById('ordersList').textContent = 'Nenhum pedido ainda.';
+  } else {
+    let ohtml = '';
+    orders.forEach(doc => {
+      const o = doc.data();
+      ohtml += `<div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <strong>${o.productName}</strong><br>
+        📱 ${o.custPhone} · 📧 ${o.custEmail}<br>
+        <span style="color:var(--green-dark);font-weight:700">R$ ${Number(o.price).toFixed(2).replace('.',',')}</span>
+        · <span style="color:var(--text-light)">${o.status}</span>
+      </div>`;
+    });
+    document.getElementById('ordersList').innerHTML = ohtml;
+  }
+}
+
+async function inviteCollab() {
+  if (userRole !== 'owner') { showToast('Apenas o dono pode convidar.'); return; }
+  const email = document.getElementById('inviteEmail').value.trim();
+  const role = document.getElementById('inviteRole').value;
+  if (!email) { showToast('Informe o e-mail!'); return; }
+  await db.collection('team').doc(email).set({
+    role, name: email.split('@')[0],
+    invitedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    invitedBy: currentUser.email
+  });
+  showToast(`✅ ${email} adicionado como ${role}!`);
+  document.getElementById('inviteEmail').value = '';
+  loadAdminData();
+}
+
+async function removeCollab(email) {
+  if (!confirm(`Remover ${email}?`)) return;
+  await db.collection('team').doc(email).delete();
+  showToast('Removido.');
+  loadAdminData();
+}
+
+// ===== MODAL =====
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===== CARRINHO =====
+let cart = JSON.parse(localStorage.getItem('bm_cart') || '[]');
+
+function saveCart() {
+  localStorage.setItem('bm_cart', JSON.stringify(cart));
+  updateCartUI();
+}
+
+function updateCartUI() {
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const btn = document.getElementById('cartBtn');
+  document.getElementById('cartBadge').textContent = count;
+  document.getElementById('cartTotal').textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
+  btn.style.display = count > 0 ? 'flex' : 'none';
+  renderCartList();
+}
+
+function renderCartList() {
+  const list = document.getElementById('cartList');
+  const footer = document.getElementById('cartFooter');
+  if (!cart.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#94a3b8"><div style="font-size:40px;margin-bottom:8px">🛒</div><p>Carrinho vazio</p></div>';
+    footer.style.display = 'none';
+    return;
+  }
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  document.getElementById('cartTotalFooter').textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
+  footer.style.display = 'block';
+
+  list.innerHTML = cart.map((item, idx) => `
+    <div class="cart-item">
+      ${item.img ? `<img src="${item.img}" onerror="this.src=''">` : '<div style="width:50px;height:50px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px">📦</div>'}
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-price">R$ ${(item.price * item.qty).toFixed(2).replace('.', ',')}</div>
+        <div class="cart-item-qty">
+          <button class="qty-btn" onclick="changeQty(${idx},-1)">−</button>
+          <span style="font-size:13px;font-weight:700;min-width:20px;text-align:center">${item.qty}</span>
+          <button class="qty-btn" onclick="changeQty(${idx},1)">+</button>
+        </div>
+      </div>
+      <button class="cart-item-del" onclick="removeFromCart(${idx})">🗑</button>
+    </div>
+  `).join('');
+}
+
+function addToCart(id, e) {
+  if (e) e.stopPropagation();
+  const p = PRODUCTS[id];
+  const existing = cart.find(i => i.id === id);
+  if (existing) {
+    existing.qty++;
+  } else {
+    cart.push({ id, name: p.name, price: p.price, img: p.img || null, qty: 1 });
+  }
+  saveCart();
+  // Feedback visual no botão
+  const btn = document.getElementById('cart-' + id);
+  if (btn) {
+    btn.classList.add('added');
+    btn.textContent = '✅ Adicionado';
+    setTimeout(() => { btn.classList.remove('added'); btn.textContent = '🛒 Carrinho'; }, 1500);
+  }
+  showToast('Adicionado ao carrinho 🛒');
+}
+
+function removeFromCart(idx) {
+  cart.splice(idx, 1);
+  saveCart();
+}
+
+function changeQty(idx, delta) {
+  cart[idx].qty += delta;
+  if (cart[idx].qty <= 0) cart.splice(idx, 1);
+  saveCart();
+}
+
+function limparCarrinho() {
+  if (!confirm('Limpar o carrinho?')) return;
+  cart = [];
+  saveCart();
+}
+
+function toggleCart() {
+  document.getElementById('cartPanel').classList.toggle('open');
+  document.getElementById('cartOverlay').classList.toggle('open');
+}
+
+function buyNow(id, e) {
+  if (e) e.stopPropagation();
+  const p = PRODUCTS[id];
+  document.getElementById('modalTitle').textContent = '⚡ ' + p.name;
+  showCheckoutStep1(p, 'peca');
+  openModal();
+}
+
+function checkoutCarrinho() {
+  if (!cart.length) return;
+  toggleCart();
+  // Montar produto virtual com todos os itens do carrinho
+  const names = cart.map(i => `${i.qty}x ${i.name}`).join(', ');
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const prodVirtual = { id: 'cart', name: names, price: total, img: null };
+  document.getElementById('modalTitle').textContent = '🛒 Finalizar Pedido';
+  showCheckoutStep1(prodVirtual, 'peca');
+  openModal();
+}
+
+// Inicializar carrinho ao carregar
+updateCartUI();
+
+// ===== NOTIFICAÇÕES DE PEDIDOS (iFood-style) =====
+let notifUnsubscribe = null;
+
+function initNotifications() {
+  if (!currentUser || (userRole !== 'owner' && userRole !== 'admin')) return;
+
+  document.getElementById('notifBtn').style.display = 'inline-block';
+
+  // Listener em tempo real no Firestore
+  notifUnsubscribe = db.collection('notifications')
+    .orderBy('createdAt', 'desc')
+    .limit(30)
+    .onSnapshot(snap => {
+      const novas = snap.docs.filter(d => !d.data().lida);
+      const total = novas.length;
+
+      const badge = document.getElementById('notifBadge');
+      const btn = document.getElementById('notifBtn');
+
+      if (total > 0) {
+        badge.style.display = 'block';
+        badge.textContent = total > 9 ? '9+' : total;
+        btn.classList.add('bell-shake');
+        setTimeout(() => btn.classList.remove('bell-shake'), 2000);
+      } else {
+        badge.style.display = 'none';
+      }
+
+      renderNotifList(snap.docs);
+    });
+}
+
+function renderNotifList(docs) {
+  const list = document.getElementById('notifList');
+  if (!docs.length) {
+    list.innerHTML = '<div class="notif-empty"><div style="font-size:40px;margin-bottom:8px">📭</div><p>Nenhum pedido ainda</p></div>';
+    return;
+  }
+
+  list.innerHTML = docs.map(doc => {
+    const d = doc.data();
+    const isNovo = !d.lida;
+    const priceStr = parseFloat(d.price || 0).toFixed(2).replace('.', ',');
+    const statusLabel = d.status === 'pago' ? '✅ Pago' : '⏳ Aguardando Pix';
+    const badgeClass = d.status === 'pago' ? 'pago' : '';
+    return `
+      <div class="notif-card ${isNovo ? 'novo' : ''} ${badgeClass}" id="nc-${doc.id}">
+        <div class="nc-badge">${isNovo ? '🆕 Novo pedido' : statusLabel}</div>
+        <div class="nc-produto">${d.productName || 'Produto'}</div>
+        <div class="nc-preco">R$ ${priceStr}</div>
+        <div class="nc-info">
+          📲 ${d.custPhone || '-'}<br>
+          📧 ${d.custEmail || '-'}<br>
+          🕐 ${d.createdAt || '-'}
+        </div>
+        <div class="nc-entrega">${d.tipoEntrega || '🛵 Entrega'}</div>
+        ${isNovo ? `<button class="nc-ack" onclick="marcarLida('${doc.id}', event)">✓ Marcar como visto</button>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  const overlay = document.getElementById('notifOverlay');
+  panel.classList.toggle('open');
+  overlay.classList.toggle('open');
+}
+
+function marcarLida(docId, e) {
+  if (e) e.stopPropagation();
+  db.collection('notifications').doc(docId).update({ lida: true });
+}
+
+function marcarTodasLidas() {
+  db.collection('notifications').where('lida', '==', false).get().then(snap => {
+    const batch = db.batch();
+    snap.docs.forEach(d => batch.update(d.ref, { lida: true }));
+    batch.commit();
+  });
+}
+
+// Ativar notificações quando o usuário logar
+auth.onAuthStateChanged(user => {
+  if (user && notifUnsubscribe === null) {
+    setTimeout(initNotifications, 500);
+  } else if (!user && notifUnsubscribe) {
+    notifUnsubscribe();
+    notifUnsubscribe = null;
+    document.getElementById('notifBtn').style.display = 'none';
+  }
+});
+
+// Carregar digital
+loadDigital();
+
+// ===== MODAL DE EDIÇÃO =====
+function buildEditModalHTML(fields, title, onSaveFn) {
+  return `<div id="editModal" onclick="if(event.target===this)this.remove()" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">
+    <div style="background:#1a0a2e;border:1px solid #2d1b69;border-radius:16px;padding:20px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="color:#a78bfa;font-size:16px;margin:0">✏️ ${title}</h3>
+        <button onclick="document.getElementById('editModal').remove()" style="background:none;border:none;color:#64748b;font-size:22px;cursor:pointer;line-height:1">×</button>
+      </div>
+      ${fields}
+      <button onclick="${onSaveFn}" style="width:100%;padding:12px;background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;margin-top:12px">💾 Salvar Alterações</button>
+    </div>
+  </div>`;
+}
+
+function editInput(id, label, value, type) {
+  type = type || 'text';
+  return `<div style="margin-bottom:12px">
+    <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:4px">${label}</label>
+    <input id="${id}" type="${type}" value="${String(value||'').replace(/"/g,'&quot;')}" style="width:100%;padding:10px;background:#0d0d1a;border:1px solid #2d1b69;border-radius:8px;color:#e2e8f0;font-size:13px;box-sizing:border-box">
+  </div>`;
+}
+function editSelect(id, label, options, current) {
+  var opts = options.map(function(o){ return '<option value="'+o+'"'+(o===current?' selected':'')+'>'+o+'</option>'; }).join('');
+  return `<div style="margin-bottom:12px">
+    <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:4px">${label}</label>
+    <select id="${id}" style="width:100%;padding:10px;background:#0d0d1a;border:1px solid #2d1b69;border-radius:8px;color:#e2e8f0;font-size:13px;box-sizing:border-box">${opts}</select>
+  </div>`;
+}
+
+function openAddPecaModal() { openEditPecaModal(null); }
+function openEditPecaModal(id) {
+  var p = id !== null ? (PRODUCTS[id] || PRODUCTS.find(function(x){return x.id===parseInt(id);})) : null;
+  var brands = [...new Set(PRODUCTS.map(function(x){return x.brand;}))].sort();
+  var types  = [...new Set(PRODUCTS.map(function(x){return x.type;}))].sort();
+  var fields = [
+    editInput('ep_name','Nome', p?p.name:''),
+    editInput('ep_price','Preço (R$)', p?p.price:'', 'number'),
+    editInput('ep_img','URL da Imagem', p?p.img:''),
+    editSelect('ep_brand','Marca', brands, p?p.brand:brands[0]),
+    editSelect('ep_type','Tipo', types, p?p.type:types[0]),
+  ].join('');
+  var saveFn = id !== null ? ('savePecaEdit('+id+')') : 'savePecaNew()';
+  document.body.insertAdjacentHTML('beforeend', buildEditModalHTML(fields, id!==null?'Editar Peça':'Nova Peça', saveFn));
+}
+
+async function savePecaEdit(id) {
+  var name  = document.getElementById('ep_name').value.trim();
+  var price = parseFloat(document.getElementById('ep_price').value);
+  var img   = document.getElementById('ep_img').value.trim();
+  var brand = document.getElementById('ep_brand').value;
+  var type  = document.getElementById('ep_type').value;
+  if (!name || !price) { showToast('Preencha nome e preço!'); return; }
+  await db.collection('peca_overrides').doc(String(id)).set({
+    name, price, img: img||null, brand, type, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.email
+  });
+  var idx = PRODUCTS.findIndex(function(p){return p.id===parseInt(id);});
+  if (idx>=0) { PRODUCTS[idx] = Object.assign({}, PRODUCTS[idx], {name, price, img: img||PRODUCTS[idx].img, brand, type}); }
+  document.getElementById('editModal').remove();
+  showToast('✅ Peça atualizada!');
+  renderPecas(activeBrand, document.getElementById('searchInput')?document.getElementById('searchInput').value:'');
+}
+
+async function savePecaNew() {
+  var name  = document.getElementById('ep_name').value.trim();
+  var price = parseFloat(document.getElementById('ep_price').value);
+  var img   = document.getElementById('ep_img').value.trim();
+  var brand = document.getElementById('ep_brand').value;
+  var type  = document.getElementById('ep_type').value;
+  if (!name || !price) { showToast('Preencha nome e preço!'); return; }
+  var newId = PRODUCTS.length > 0 ? Math.max.apply(null, PRODUCTS.map(function(p){return p.id;})) + 1 : 0;
+  var newP = { id: newId, name, price, img: img||null, brand, type, search: (name+' '+brand+' '+type).toLowerCase(), priceStr: 'R$ '+price.toFixed(2).replace('.',',') };
+  PRODUCTS.push(newP);
+  await db.collection('peca_overrides').doc(String(newId)).set(Object.assign({}, newP, {isNew:true, createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: currentUser.email}));
+  document.getElementById('editModal').remove();
+  showToast('✅ Peça adicionada!');
+  var bf = document.getElementById('brandFilters');
+  var hasBrand = [...bf.querySelectorAll('.filter-btn')].some(function(b){return b.textContent===brand;});
+  if (!hasBrand) {
+    var btn = document.createElement('button'); btn.className='filter-btn'; btn.textContent=brand;
+    btn.onclick=function(){filterBrand(brand,btn);}; bf.appendChild(btn);
+  }
+  document.getElementById('statPecas').textContent = PRODUCTS.length;
+  renderPecas(activeBrand, document.getElementById('searchInput')?document.getElementById('searchInput').value:'');
+}
+
+function openEditDigitalModal(id) {
+  var p = digitalProducts.find(function(x){return x.id===id;});
+  if (!p) return;
+  var cats = ['Curso','Apostila','Gibi/HQ','Livro','Outro'];
+  var fields = [
+    editInput('ed_title','Título', p.title||''),
+    editInput('ed_price','Preço (R$)', p.price||'', 'number'),
+    editInput('ed_desc','Descrição', p.description||''),
+    editSelect('ed_cat','Categoria', cats, p.category||'Outro'),
+    editInput('ed_url','URL do PDF', p.pdfUrl||''),
+    editInput('ed_img','URL da Capa (opcional)', p.imgUrl||''),
+  ].join('');
+  document.body.insertAdjacentHTML('beforeend', buildEditModalHTML(fields, 'Editar Produto Digital', "saveDigitalEdit('"+id+"')"));
+}
+
+async function saveDigitalEdit(id) {
+  var title = document.getElementById('ed_title').value.trim();
+  var price = parseFloat(document.getElementById('ed_price').value);
+  var desc  = document.getElementById('ed_desc').value.trim();
+  var cat   = document.getElementById('ed_cat').value;
+  var url   = document.getElementById('ed_url').value.trim();
+  var img   = document.getElementById('ed_img').value.trim();
+  if (!title||!price||!url) { showToast('Preencha título, preço e URL!'); return; }
+  await db.collection('digital_products').doc(id).update({ title, price, description:desc, category:cat, pdfUrl:url, imgUrl:img||null });
+  document.getElementById('editModal').remove();
+  showToast('✅ Produto atualizado!');
+  loadDigital();
+}
+
+function openEditGeekModal(id) {
+  var p = geekProducts.find(function(x){return x.id===id;});
+  if (!p) return;
+  var cats = ['Action Figure','Acessório Gamer','Camiseta','Caneca','Quadro/Poster','Colecionável','Periférico','Cabo/Adaptador','Outro'];
+  var fields = [
+    editInput('eg_title','Título', p.title||''),
+    editInput('eg_price','Preço (R$)', p.price||'', 'number'),
+    editInput('eg_desc','Descrição', p.description||''),
+    editSelect('eg_cat','Categoria', cats, p.category||'Outro'),
+    editInput('eg_stock','Estoque', p.stock||0, 'number'),
+    editInput('eg_img','URL da Imagem', p.imageUrl||''),
+  ].join('');
+  document.body.insertAdjacentHTML('beforeend', buildEditModalHTML(fields, 'Editar Produto Geek', "saveGeekEdit('"+id+"')"));
+}
+
+async function saveGeekEdit(id) {
+  var title = document.getElementById('eg_title').value.trim();
+  var price = parseFloat(document.getElementById('eg_price').value);
+  var desc  = document.getElementById('eg_desc').value.trim();
+  var cat   = document.getElementById('eg_cat').value;
+  var stock = parseInt(document.getElementById('eg_stock').value)||0;
+  var img   = document.getElementById('eg_img').value.trim();
+  if (!title||!price) { showToast('Preencha título e preço!'); return; }
+  await db.collection('geek_products').doc(id).update({ title, price, description:desc, category:cat, stock, imageUrl:img||null });
+  document.getElementById('editModal').remove();
+  showToast('✅ Produto atualizado!');
+  loadGeek();
+}
+
+// ===== SISTEMA DE ARQUIVO =====
+let archivedTab = 'pecas';
+
+async function archiveProduct(tipo, id, name) {
+  if (!isStaff) return;
+  if (!confirm(`Arquivar "${name}"?\nEle ficará oculto mas pode ser reativado a qualquer momento.`)) return;
+  const col = tipo === 'peca' ? 'archived_pecas' : tipo === 'digital' ? 'archived_digital' : 'archived_geek';
+  let data = {};
+  if (tipo === 'peca') {
+    const p = PRODUCTS[id] || PRODUCTS[parseInt(id)];
+    if (p) data = { ...p, originalId: id, archivedAt: firebase.firestore.FieldValue.serverTimestamp(), archivedBy: currentUser.email };
+  } else {
+    const srcCol = tipo === 'digital' ? 'digital_products' : 'geek_products';
+    const doc = await db.collection(srcCol).doc(String(id)).get();
+    if (doc.exists) {
+      data = { ...doc.data(), originalId: id, archivedAt: firebase.firestore.FieldValue.serverTimestamp(), archivedBy: currentUser.email };
+      await db.collection(srcCol).doc(String(id)).delete();
+    }
+  }
+  await db.collection(col).add(data);
+  showToast(`🗃️ "${name}" arquivado!`);
+  if (tipo === 'digital') loadDigital();
+  else if (tipo === 'geek') loadGeek();
+  loadArchivedProducts();
+}
+
+async function restoreProduct(tipo, arcId, name) {
+  const col = tipo === 'peca' ? 'archived_pecas' : tipo === 'digital' ? 'archived_digital' : 'archived_geek';
+  const destCol = tipo === 'digital' ? 'digital_products' : 'geek_products';
+  const docRef = await db.collection(col).doc(arcId).get();
+  if (!docRef.exists) return;
+  const data = docRef.data();
+  const restored = { ...data };
+  delete restored.archivedAt; delete restored.archivedBy; delete restored.originalId;
+  if (tipo !== 'peca') {
+    await db.collection(destCol).add({ ...restored, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  }
+  await db.collection(col).doc(arcId).delete();
+  showToast(`✅ "${name}" reativado!`);
+  if (tipo === 'digital') loadDigital();
+  else if (tipo === 'geek') loadGeek();
+  loadArchivedProducts();
+}
+
+async function deleteProductPermanently(tipo, arcId, name) {
+  if (!confirm(`⚠️ Excluir "${name}" permanentemente?\nEssa ação não pode ser desfeita.`)) return;
+  const col = tipo === 'peca' ? 'archived_pecas' : tipo === 'digital' ? 'archived_digital' : 'archived_geek';
+  await db.collection(col).doc(arcId).delete();
+  showToast(`🗑️ "${name}" excluído permanentemente.`);
+  loadArchivedProducts();
+}
+
+function switchArchiveTab(tab) {
+  archivedTab = tab;
+  ['Pecas','Digital','Geek'].forEach(t => {
+    const btn = document.getElementById('arcTab'+t);
+    if (btn) btn.classList.toggle('active', t.toLowerCase() === tab || (t === 'Pecas' && tab === 'pecas'));
+  });
+  loadArchivedProducts();
+}
+
+async function loadArchivedProducts() {
+  const col = archivedTab === 'pecas' ? 'archived_pecas' : archivedTab === 'digital' ? 'archived_digital' : 'archived_geek';
+  const list = document.getElementById('archivedList');
+  if (!list) return;
+  try {
+    const snap = await db.collection(col).orderBy('archivedAt','desc').get();
+    if (snap.empty) {
+      list.innerHTML = `<p style="color:var(--text-light);font-size:13px;text-align:center;padding:20px">Nenhum produto arquivado.</p>`;
+      return;
+    }
+    list.innerHTML = snap.docs.map(doc => {
+      const p = doc.data();
+      const name = p.name || p.title || 'Produto';
+      const price = typeof p.price === 'number' ? 'R$ '+p.price.toFixed(2).replace('.',',') : (p.price ? 'R$ '+p.price : '');
+      const img = p.img || p.imgUrl || p.imageUrl || '';
+      const imgHtml = img ? `<img src="${img}" style="width:50px;height:50px;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">` : `<div class="no-img-sm">📦</div>`;
+      const nameSafe = name.replace(/'/g,"\\'");
+      return `<div class="archived-card">
+        ${imgHtml}
+        <div class="arc-info">
+          <div class="arc-name">${name}</div>
+          <div class="arc-sub">${price}${p.category ? ' · '+p.category : ''}</div>
+        </div>
+        <div class="arc-actions">
+          <button class="btn-restore" onclick="restoreProduct('${archivedTab}','${doc.id}','${nameSafe}')">↩️ Reativar</button>
+          <button class="btn-delete-perm" onclick="deleteProductPermanently('${archivedTab}','${doc.id}','${nameSafe}')">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { list.innerHTML = `<p style="color:var(--text-light);font-size:13px;text-align:center;padding:20px">Nenhum produto arquivado.</p>`; }
+}
+
+// ===== GEEK & ACESSÓRIOS =====
+let geekProducts = [];
+let geekFilter = 'todos';
+
+async function loadGeek() {
+  try {
+    // Busca via REST API (sem SDK cache) para garantir dados frescos
+    const PROJECT = 'bancadamatriz-9f797';
+    const API_KEY = 'AIzaSyAoZYnDTl8WoCG5K3q6hjFQnVFmkAS6PZ8';
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/geek_products?key=${API_KEY}&pageSize=100`;
+    const res = await fetch(url);
+    const data = await res.json();
+    geekProducts = (data.documents || []).map(doc => {
+      const f = doc.fields || {};
+      const id = doc.name.split('/').pop();
+      const parseField = (v) => {
+        if (!v) return null;
+        return v.stringValue ?? v.integerValue ?? v.doubleValue ?? v.booleanValue ?? null;
+      };
+      const ts = f.createdAt?.timestampValue ? new Date(f.createdAt.timestampValue).getTime() / 1000 : 0;
+      return {
+        id,
+        title: parseField(f.title) || '',
+        price: parseFloat(parseField(f.price)) || 0,
+        description: parseField(f.description) || '',
+        category: parseField(f.category) || 'Outro',
+        stock: parseInt(parseField(f.stock)) || 0,
+        imageUrl: parseField(f.imageUrl) || '',
+        createdAt: { seconds: ts }
+      };
+    });
+    geekProducts.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
+    document.getElementById('statGeek') && (document.getElementById('statGeek').textContent = geekProducts.length);
+    renderGeek();
+  } catch(e) {
+    console.error('Geek load error:', e);
+    const grid = document.getElementById('geekGrid');
+    if (grid) grid.innerHTML = `<div style="grid-column:1/-1;color:#f87171;padding:20px;font-size:12px">Erro: ${e.message||e}</div>`;
+  }
+}
+
+function renderGeek(filter) {
+  if (filter !== undefined) geekFilter = filter;
+  const grid = document.getElementById('geekGrid');
+  if (!grid) return;
+  const list = geekFilter === 'todos' ? geekProducts : geekProducts.filter(p => p.category === geekFilter);
+  if (!list.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#64748b;grid-column:1/-1">
+      <div style="font-size:48px;margin-bottom:12px">🎮</div>
+      <p style="font-weight:600;color:var(--text)">Em breve!</p>
+      <p style="font-size:13px;margin-top:6px;color:var(--text-light)">Action figures, acessórios gamer, colecionáveis e muito mais chegando aqui.</p>
+    </div>`;
+    return;
+  }
+  const catColors = {
+    'Action Figure':'rgba(239,68,68,0.2)',
+    'Acessório Gamer':'rgba(124,58,237,0.2)',
+    'Camiseta':'rgba(59,130,246,0.2)',
+    'Caneca':'rgba(245,158,11,0.2)',
+    'Quadro/Poster':'rgba(16,185,129,0.2)',
+    'Colecionável':'rgba(236,72,153,0.2)',
+    'Periférico':'rgba(20,184,166,0.2)',
+    'Cabo/Adaptador':'rgba(100,116,139,0.2)',
+    'Outro':'rgba(100,116,139,0.15)'
+  };
+  const catTextColors = {
+    'Action Figure':'#f87171','Acessório Gamer':'#a78bfa','Camiseta':'#60a5fa',
+    'Caneca':'#fbbf24','Quadro/Poster':'#34d399','Colecionável':'#f472b6',
+    'Periférico':'#2dd4bf','Cabo/Adaptador':'#94a3b8','Outro':'#94a3b8'
+  };
+  grid.innerHTML = list.map(p => {
+    const price = typeof p.price === 'number' ? p.price.toFixed(2).replace('.',',') : p.price;
+    const tagBg = catColors[p.category] || 'rgba(100,116,139,0.15)';
+    const tagColor = catTextColors[p.category] || '#94a3b8';
+    const imgHtml = p.imageUrl
+      ? `<img src="${p.imageUrl}" alt="${p.title}" style="width:100%;height:160px;object-fit:cover">`
+      : `<div style="width:100%;height:160px;background:linear-gradient(135deg,#1a0a2e,#2d1b69);display:flex;align-items:center;justify-content:center;font-size:52px">🎮</div>`;
+    const estoque = p.stock > 0 ? `<span style="font-size:10px;color:#34d399">✅ ${p.stock} em estoque</span>` : `<span style="font-size:10px;color:#f43f5e">❌ Esgotado</span>`;
+    return `<div class="digital-card" style="position:relative">
+      ${isStaff ? `
+        <button class="btn-archive" title="Arquivar" style="right:6px" onclick="archiveProduct('geek','${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">🗑️</button>
+        <button class="btn-archive" title="Editar" style="right:40px;background:rgba(15,15,25,0.75)" onclick="openEditGeekModal('${p.id}')">✏️</button>
+      ` : ''}
+      ${imgHtml}
+      <div class="digital-body">
+        <span class="digital-tag" style="background:${tagBg};color:${tagColor}">${p.category||'Geek'}</span>
+        <div class="digital-title" style="margin-top:8px">${p.title}</div>
+        <div class="digital-desc">${p.description||''}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:20px;font-weight:800;color:#34d399">R$ ${price}</span>
+          ${estoque}
+        </div>
+        ${p.stock > 0
+          ? `<button class="btn-buy" onclick="openCheckoutGeek('${p.id}')" style="width:100%">🛒 Comprar</button>`
+          : `<button style="width:100%;padding:10px;border-radius:8px;border:1px solid #2d2d4a;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:not-allowed">Esgotado</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterGeek(cat, btn) {
+  document.querySelectorAll('#geekFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGeek(cat);
+}
+
+async function saveGeek() {
+  const title = document.getElementById('gkTitle').value.trim();
+  const desc = document.getElementById('gkDesc').value.trim();
+  const cat = document.getElementById('gkCat').value;
+  const price = parseFloat(document.getElementById('gkPrice').value);
+  const stock = parseInt(document.getElementById('gkStock').value) || 0;
+  const imageUrl = document.getElementById('gkImg').value.trim();
+  if (!title || isNaN(price)) { showToast('Preencha nome e preço!'); return; }
+  await db.collection('geek_products').add({
+    title, description: desc, category: cat, price, stock,
+    imageUrl: imageUrl || '', active: true,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  showToast('✅ Produto Geek salvo!');
+  document.getElementById('gkTitle').value = '';
+  document.getElementById('gkDesc').value = '';
+  document.getElementById('gkPrice').value = '';
+  document.getElementById('gkStock').value = '';
+  document.getElementById('gkImg').value = '';
+  loadGeek();
+}
+
+function openCheckoutGeek(id) {
+  const p = geekProducts.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modalTitle').textContent = '🛒 ' + p.title;
+  showCheckoutStep1(p, 'geek');
+  openModal();
+}
+
+loadGeek();
+</script>
+
+<!-- OVERLAY CARRINHO -->
+<div class="notif-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+
+<!-- BOTÃO FLUTUANTE CARRINHO -->
+<button id="cartBtn" onclick="toggleCart()">
+  🛒 <span id="cartBadge">0</span>
+  <span id="cartTotal" style="font-size:13px;opacity:.9">R$ 0,00</span>
+</button>
+
+<!-- PAINEL CARRINHO -->
+<div id="cartPanel">
+  <div class="cart-header">
+    <span style="font-size:22px">🛒</span>
+    <h3>Carrinho</h3>
+    <button onclick="limparCarrinho()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑 Limpar</button>
+    <button onclick="toggleCart()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;margin-left:6px">×</button>
+  </div>
+  <div class="cart-list" id="cartList"></div>
+  <div class="cart-footer" id="cartFooter" style="display:none">
+    <div class="cart-total"><span>Total</span><span id="cartTotalFooter">R$ 0,00</span></div>
+    <button class="btn-checkout-cart" onclick="checkoutCarrinho()">✅ Finalizar pedido</button>
+  </div>
+</div>
+
+<!-- OVERLAY NOTIFICAÇÕES -->
+<div class="notif-overlay" id="notifOverlay" onclick="toggleNotifPanel()"></div>
+
+<!-- PAINEL DE NOTIFICAÇÕES (estilo iFood) -->
+<div id="notifPanel">
+  <div class="notif-header">
+    <span style="font-size:22px">🛒</span>
+    <h3>Pedidos</h3>
+    <button onclick="marcarTodasLidas()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer">
+      ✓ Marcar todas como lidas
+    </button>
+    <button onclick="toggleNotifPanel()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;margin-left:6px">×</button>
+  </div>
+  <div class="notif-list" id="notifList">
+    <div class="notif-empty">
+      <div style="font-size:40px;margin-bottom:8px">📭</div>
+      <p>Nenhum pedido ainda</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
