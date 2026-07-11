@@ -1,1 +1,27 @@
-{"version":2,"buildCommand":"","outputDirectory":"public","rewrites":[{"source":"/api/pix","destination":"/api/pix"},{"source":"/api/notify-order","destination":"/api/notify-order"},{"source":"/api/create-payment","destination":"/api/create-payment"},{"source":"/api/mp-webhook","destination":"/api/mp-webhook"}]}
+{
+  "version": 2,
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/api/pix",
+      "destination": "/api/pix"
+    },
+    {
+      "source": "/api/notify-order",
+      "destination": "/api/notify-order"
+    },
+    {
+      "source": "/api/create-payment",
+      "destination": "/api/create-payment"
+    },
+    {
+      "source": "/api/mp-webhook",
+      "destination": "/api/mp-webhook"
+    },
+    {
+      "source": "/api/add-geek",
+      "destination": "/api/add-geek"
+    }
+  ]
+}
