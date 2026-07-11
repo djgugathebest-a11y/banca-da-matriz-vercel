@@ -126,6 +126,31 @@
       position:relative;
     }
     .product-card:hover { transform:translateY(-3px); box-shadow: var(--glow); border-color: rgba(124,58,237,0.5); }
+    .btn-archive {
+      position:absolute; top:6px; right:6px; z-index:10;
+      background:rgba(15,15,25,0.75); border:none; border-radius:8px;
+      width:30px; height:30px; display:none; align-items:center; justify-content:center;
+      cursor:pointer; font-size:15px; backdrop-filter:blur(4px);
+      transition: background .2s;
+    }
+    .btn-archive:hover { background:rgba(239,68,68,0.8); }
+    .product-card:hover .btn-archive { display:flex; }
+    /* card arquivado */
+    .archived-card {
+      background:var(--card); border-radius:12px; border:1px solid var(--border);
+      padding:12px; display:flex; align-items:center; gap:12px;
+    }
+    .archived-card img { width:50px; height:50px; object-fit:cover; border-radius:8px; }
+    .archived-card .no-img-sm { width:50px; height:50px; border-radius:8px; background:var(--bg2); display:flex; align-items:center; justify-content:center; font-size:22px; }
+    .archived-card .arc-info { flex:1; min-width:0; }
+    .archived-card .arc-name { font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .archived-card .arc-sub { font-size:11px; color:var(--text-light); margin-top:2px; }
+    .archived-card .arc-actions { display:flex; gap:8px; flex-shrink:0; }
+    .btn-restore { background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+    .btn-restore:hover { background:rgba(52,211,153,0.3); }
+    .btn-delete-perm { background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+    .btn-delete-perm:hover { background:rgba(239,68,68,0.3); }
+    .archived-list { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
     .product-card img { width:100%; aspect-ratio:1; object-fit:cover; background:var(--bg2); }
     .product-card .no-img { width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; background:var(--bg2); font-size:36px; }
     .product-info { padding:8px 10px 10px; }
@@ -616,6 +641,18 @@
     </div>
 
     <div class="admin-section">
+      <h3>🗃️ Produtos Arquivados</h3>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="filter-btn active" id="arcTabPecas" onclick="switchArchiveTab('pecas')">🔧 Peças</button>
+        <button class="filter-btn" id="arcTabDigital" onclick="switchArchiveTab('digital')">📚 Digital</button>
+        <button class="filter-btn" id="arcTabGeek" onclick="switchArchiveTab('geek')">🎮 Geek</button>
+      </div>
+      <div class="archived-list" id="archivedList">
+        <p style="color:var(--text-light);font-size:13px;text-align:center;padding:20px">Nenhum produto arquivado.</p>
+      </div>
+    </div>
+
+    <div class="admin-section">
       <h3>👥 Colaboradores</h3>
       <div id="collabList"></div>
       <div class="invite-row">
@@ -675,6 +712,7 @@ const WPP = '5561984611071';
 
 let currentUser = null;
 let userRole = null; // 'owner' | 'admin' | 'colaborador' | null
+let isStaff = false;
 
 // ===== AUTH =====
 auth.onAuthStateChanged(async user => {
@@ -697,7 +735,8 @@ auth.onAuthStateChanged(async user => {
 });
 
 function updateAdminUI() {
-  const isStaff = userRole === 'owner' || userRole === 'admin' || userRole === 'colaborador';
+  isStaff = userRole === 'owner' || userRole === 'admin' || userRole === 'colaborador';
+  const isStaff = window.isStaff;
   document.getElementById('adminLink').style.display = isStaff ? 'inline-flex' : 'none';
   document.getElementById('tabAdmin').style.display = isStaff ? 'block' : 'none';
   document.getElementById('uploadSection').style.display = isStaff ? 'block' : 'none';
@@ -727,6 +766,7 @@ function switchTab(name, btn) {
   document.getElementById('panel-' + name).classList.add('active');
   btn.classList.add('active');
   document.getElementById('searchWrap').style.display = name === 'pecas' ? 'block' : 'none';
+  if (name === 'admin' && isStaff) loadArchivedProducts();
 }
 
 // ===== PRODUTOS DE PEÇAS =====
@@ -790,6 +830,7 @@ function renderPecas(filter='', term='') {
             <button class="btn-cart" id="cart-${p.id}" onclick="addToCart(${p.id},event)">🛒 Carrinho</button>
             <button class="btn-buy-card" onclick="buyNow(${p.id},event)">⚡ Comprar</button>
           </div>
+          ${isStaff ? `<button class="btn-archive" title="Arquivar" onclick="event.stopPropagation();archiveProduct('peca',${p.id},'${p.name.replace(/'/g,"\\'")}')">🗑️</button>` : ''}
         </div>`;
       });
       html += `</div>`;
@@ -1133,7 +1174,8 @@ function renderDigital() {
     'Curso':'rgba(124,58,237,0.2)','Apostila':'rgba(59,130,246,0.2)','Gibi/HQ':'rgba(245,158,11,0.2)','Livro':'rgba(16,185,129,0.2)','Outro':'rgba(100,116,139,0.2)'
   };
   grid.innerHTML = digitalProducts.map(p => `
-    <div class="digital-card">
+    <div class="digital-card" style="position:relative">
+      ${isStaff ? `<button class="btn-archive" title="Arquivar" onclick="archiveProduct('digital','${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">🗑️</button>` : ''}
       <div class="digital-cover">
         ${p.imgUrl ? `<img src="${p.imgUrl}" alt="${p.title}">` : `<span style="font-size:60px">${p.category==='Curso'?'🎓':p.category==='Apostila'?'📄':p.category==='Gibi/HQ'?'🦸':'📖'}</span>`}
       </div>
@@ -1477,6 +1519,99 @@ auth.onAuthStateChanged(user => {
 // Carregar digital
 loadDigital();
 
+// ===== SISTEMA DE ARQUIVO =====
+let archivedTab = 'pecas';
+
+async function archiveProduct(tipo, id, name) {
+  if (!isStaff) return;
+  if (!confirm(`Arquivar "${name}"?\nEle ficará oculto mas pode ser reativado a qualquer momento.`)) return;
+  const col = tipo === 'peca' ? 'archived_pecas' : tipo === 'digital' ? 'archived_digital' : 'archived_geek';
+  let data = {};
+  if (tipo === 'peca') {
+    const p = PRODUCTS[id] || PRODUCTS[parseInt(id)];
+    if (p) data = { ...p, originalId: id, archivedAt: firebase.firestore.FieldValue.serverTimestamp(), archivedBy: currentUser.email };
+  } else {
+    const srcCol = tipo === 'digital' ? 'digital_products' : 'geek_products';
+    const doc = await db.collection(srcCol).doc(String(id)).get();
+    if (doc.exists) {
+      data = { ...doc.data(), originalId: id, archivedAt: firebase.firestore.FieldValue.serverTimestamp(), archivedBy: currentUser.email };
+      await db.collection(srcCol).doc(String(id)).delete();
+    }
+  }
+  await db.collection(col).add(data);
+  showToast(`🗃️ "${name}" arquivado!`);
+  if (tipo === 'digital') loadDigital();
+  else if (tipo === 'geek') loadGeek();
+  loadArchivedProducts();
+}
+
+async function restoreProduct(tipo, arcId, name) {
+  const col = tipo === 'peca' ? 'archived_pecas' : tipo === 'digital' ? 'archived_digital' : 'archived_geek';
+  const destCol = tipo === 'digital' ? 'digital_products' : 'geek_products';
+  const docRef = await db.collection(col).doc(arcId).get();
+  if (!docRef.exists) return;
+  const data = docRef.data();
+  const restored = { ...data };
+  delete restored.archivedAt; delete restored.archivedBy; delete restored.originalId;
+  if (tipo !== 'peca') {
+    await db.collection(destCol).add({ ...restored, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  }
+  await db.collection(col).doc(arcId).delete();
+  showToast(`✅ "${name}" reativado!`);
+  if (tipo === 'digital') loadDigital();
+  else if (tipo === 'geek') loadGeek();
+  loadArchivedProducts();
+}
+
+async function deleteProductPermanently(tipo, arcId, name) {
+  if (!confirm(`⚠️ Excluir "${name}" permanentemente?\nEssa ação não pode ser desfeita.`)) return;
+  const col = tipo === 'peca' ? 'archived_pecas' : tipo === 'digital' ? 'archived_digital' : 'archived_geek';
+  await db.collection(col).doc(arcId).delete();
+  showToast(`🗑️ "${name}" excluído permanentemente.`);
+  loadArchivedProducts();
+}
+
+function switchArchiveTab(tab) {
+  archivedTab = tab;
+  ['Pecas','Digital','Geek'].forEach(t => {
+    const btn = document.getElementById('arcTab'+t);
+    if (btn) btn.classList.toggle('active', t.toLowerCase() === tab || (t === 'Pecas' && tab === 'pecas'));
+  });
+  loadArchivedProducts();
+}
+
+async function loadArchivedProducts() {
+  const col = archivedTab === 'pecas' ? 'archived_pecas' : archivedTab === 'digital' ? 'archived_digital' : 'archived_geek';
+  const list = document.getElementById('archivedList');
+  if (!list) return;
+  try {
+    const snap = await db.collection(col).orderBy('archivedAt','desc').get();
+    if (snap.empty) {
+      list.innerHTML = `<p style="color:var(--text-light);font-size:13px;text-align:center;padding:20px">Nenhum produto arquivado.</p>`;
+      return;
+    }
+    list.innerHTML = snap.docs.map(doc => {
+      const p = doc.data();
+      const name = p.name || p.title || 'Produto';
+      const price = typeof p.price === 'number' ? 'R$ '+p.price.toFixed(2).replace('.',',') : (p.price ? 'R$ '+p.price : '');
+      const img = p.img || p.imgUrl || p.imageUrl || '';
+      const imgHtml = img ? `<img src="${img}" style="width:50px;height:50px;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">` : `<div class="no-img-sm">📦</div>`;
+      const nameSafe = name.replace(/'/g,"\\'");
+      return `<div class="archived-card">
+        ${imgHtml}
+        <div class="arc-info">
+          <div class="arc-name">${name}</div>
+          <div class="arc-sub">${price}${p.category ? ' · '+p.category : ''}</div>
+        </div>
+        <div class="arc-actions">
+          <button class="btn-restore" onclick="restoreProduct('${archivedTab}','${doc.id}','${nameSafe}')">↩️ Reativar</button>
+          <button class="btn-delete-perm" onclick="deleteProductPermanently('${archivedTab}','${doc.id}','${nameSafe}')">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { list.innerHTML = `<p style="color:var(--text-light);font-size:13px;text-align:center;padding:20px">Nenhum produto arquivado.</p>`; }
+}
+
 // ===== GEEK & ACESSÓRIOS =====
 let geekProducts = [];
 let geekFilter = 'todos';
@@ -1528,7 +1663,8 @@ function renderGeek(filter) {
       ? `<img src="${p.imageUrl}" alt="${p.title}" style="width:100%;height:160px;object-fit:cover">`
       : `<div style="width:100%;height:160px;background:linear-gradient(135deg,#1a0a2e,#2d1b69);display:flex;align-items:center;justify-content:center;font-size:52px">🎮</div>`;
     const estoque = p.stock > 0 ? `<span style="font-size:10px;color:#34d399">✅ ${p.stock} em estoque</span>` : `<span style="font-size:10px;color:#f43f5e">❌ Esgotado</span>`;
-    return `<div class="digital-card">
+    return `<div class="digital-card" style="position:relative">
+      ${isStaff ? `<button class="btn-archive" title="Arquivar" onclick="archiveProduct('geek','${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">🗑️</button>` : ''}
       ${imgHtml}
       <div class="digital-body">
         <span class="digital-tag" style="background:${tagBg};color:${tagColor}">${p.category||'Geek'}</span>
